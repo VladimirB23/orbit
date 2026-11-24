@@ -1,0 +1,88 @@
+"""Pure business rules: no database, no clock, easy to test."""
+
+from collections.abc import Iterable, Mapping, Sequence
+from datetime import date, datetime
+
+from orbit.domain.enums import CLOSED_STATUSES, Actor, Priority, Status
+from orbit.domain.errors import ValidationError
+
+
+def task_progress(statuses: Iterable[Status]) -> float | None:
+    """done / (all - canceled); None when nothing is countable."""
+    counted = [s for s in statuses if s is not Status.CANCELED]
+    if not counted:
+        return None
+    return sum(s is Status.DONE for s in counted) / len(counted)
+
+
+def _own_status_progress(status: Status) -> float:
+    return 1.0 if status is Status.DONE else 0.0
+
+
+def milestone_progress(status: Status, task_statuses: Sequence[Status]) -> float:
+    """By tasks; a milestone without countable tasks goes by its own status."""
+    progress = task_progress(task_statuses)
+    return _own_status_progress(status) if progress is None else progress
+
+
+def project_progress(
+    status: Status,
+    milestones: Sequence[tuple[Status, float]],
+    task_statuses: Sequence[Status],
+) -> float:
+    """Mean of non-canceled milestones; else by tasks; else by own status."""
+    active = [progress for m_status, progress in milestones if m_status is not Status.CANCELED]
+    if active:
+        return sum(active) / len(active)
+    progress = task_progress(task_statuses)
+    return _own_status_progress(status) if progress is None else progress
+
+
+def is_overdue(due_date: date | None, status: Status, today: date) -> bool:
+    return due_date is not None and due_date < today and status not in CLOSED_STATUSES
+
+
+def next_done_at(
+    old: Status, new: Status, current: datetime | None, now: datetime
+) -> datetime | None:
+    """done_at is set on entering done, kept while done, cleared on leaving."""
+    if new is not Status.DONE:
+        return None
+    return current if old is Status.DONE and current is not None else now
+
+
+def parse_status(value: str) -> Status:
+    normalized = value.strip().lower().replace("-", "_")
+    try:
+        return Status(normalized)
+    except ValueError:
+        allowed = ", ".join(s.value for s in Status)
+        raise ValidationError(f"unknown status '{value}', allowed: {allowed}") from None
+
+
+def parse_priority(value: int | str) -> Priority:
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text.lstrip("-").isdigit():
+            value = int(text)
+        else:
+            try:
+                return Priority[text.upper()]
+            except KeyError:
+                pass
+    if isinstance(value, int) and value in Priority._value2member_map_:
+        return Priority(value)
+    names = ", ".join(f"{p.value}={p.name.lower()}" for p in Priority)
+    raise ValidationError(f"unknown priority '{value}', allowed: {names}")
+
+
+def actor_from_env(environ: Mapping[str, str]) -> Actor:
+    """ORBIT_ACTOR names who makes the change; unset means Vladimir at the terminal."""
+    raw = environ.get("ORBIT_ACTOR", "").strip().lower()
+    if not raw:
+        return Actor.VLADIMIR
+    try:
+        return Actor(raw)
+    except ValueError:
+        allowed = ", ".join(a.value for a in Actor)
+        raise ValidationError(f"ORBIT_ACTOR='{raw}' is not one of: {allowed}") from None
