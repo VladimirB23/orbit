@@ -5,6 +5,7 @@ history in events looks like four weeks of real work by Vladimir and Claude.
 All dates are relative to `today`: the demo always has overdue and upcoming items.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import NAMESPACE_URL, uuid5
@@ -12,7 +13,8 @@ from uuid import NAMESPACE_URL, uuid5
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from orbit.db.models import Event, Milestone, Project, Task, WorkSession
+from orbit.db.models import Commit, Event, Milestone, Project, Task, WorkSession
+from orbit.domain.commits import CommitRecord
 from orbit.domain.enums import Actor
 from orbit.domain.enums import Status as S
 from orbit.domain.service import Orbit
@@ -225,12 +227,27 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
     clock.at(3, 10)
     vlad.archive_project("portfolio-site")
 
-    claude.import_sessions(_demo_sessions(today))
+    sessions = _demo_sessions(today)
+    claude.import_sessions(sessions)
+    for slug in {s.project for s in sessions}:
+        claude.import_commits(slug, commits_of([s for s in sessions if s.project == slug]))
     session.flush()
     return {
         model.__tablename__: session.scalar(select(func.count()).select_from(model)) or 0
-        for model in (Project, Milestone, Task, Event, WorkSession)
+        for model in (Project, Milestone, Task, Event, WorkSession, Commit)
     }
+
+
+def commits_of(sessions: Iterable[SessionRecord]) -> list[CommitRecord]:
+    """Commits spread evenly over the sessions they were made in."""
+    return [
+        CommitRecord(
+            sha=uuid5(NAMESPACE_URL, f"{s.external_id}/{n}").hex,
+            committed_at=s.started_at + (s.ended_at - s.started_at) * (n + 1) / (s.commits + 1),
+        )
+        for s in sessions
+        for n in range(s.commits)
+    ]
 
 
 def _demo_sessions(today: date) -> list[SessionRecord]:

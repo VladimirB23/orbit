@@ -24,12 +24,14 @@ export const keys = {
   events: ['events'] as const,
   sessions: ['sessions'] as const,
   meta: ['meta'] as const,
+  analytics: ['analytics'] as const,
 };
 
 export function refreshData(qc: QueryClient) {
   void qc.invalidateQueries({ queryKey: keys.tree });
   void qc.invalidateQueries({ queryKey: keys.events });
   void qc.invalidateQueries({ queryKey: keys.sessions });
+  void qc.invalidateQueries({ queryKey: keys.analytics });
 }
 
 // --- reading -----------------------------------------------------------------
@@ -63,6 +65,22 @@ export function useSessions(project: string) {
   return useQuery({
     queryKey: [...keys.sessions, project],
     queryFn: () => unwrap(client.GET('/api/v1/sessions', { params: { query: { project } } })),
+  });
+}
+
+export interface AnalyticsQuery {
+  /** Undefined: all time. */
+  start?: string;
+  end: string;
+  project?: string;
+}
+
+/** The previous numbers stay on screen while the next ones are on their way. */
+export function useAnalytics(query: AnalyticsQuery) {
+  return useQuery({
+    queryKey: [...keys.analytics, query],
+    queryFn: () => unwrap(client.GET('/api/v1/analytics', { params: { query } })),
+    placeholderData: keepPreviousData,
   });
 }
 

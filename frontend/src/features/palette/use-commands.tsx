@@ -1,5 +1,14 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { BookOpen, ChartGantt, CodeXml, Copy, Eye, Keyboard, Plus } from 'lucide-react';
+import {
+  BookOpen,
+  ChartColumn,
+  ChartGantt,
+  CodeXml,
+  Copy,
+  Eye,
+  Keyboard,
+  Plus,
+} from 'lucide-react';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { useMeta, useTree } from '@/api/queries';
@@ -105,7 +114,12 @@ export function usePaletteCommands(onHelp: () => void): Command[] {
         title: `Показать: ${VIEW_LABEL[view].toLowerCase()}`,
         always: true,
         icon: <Eye />,
-        run: () => void navigate({ to: '/', search: { screen: search.screen, view } }),
+        run: () =>
+          void navigate({
+            to: '/',
+            // Views filter rows, and the analytics has none.
+            search: { screen: search.screen === 'analytics' ? undefined : search.screen, view },
+          }),
       })),
       {
         ...plain,
@@ -120,6 +134,19 @@ export function usePaletteCommands(onHelp: () => void): Command[] {
             search: { ...search, screen: search.screen ? undefined : 'timeline' },
           }),
       },
+      ...(search.screen === 'analytics'
+        ? []
+        : [
+            {
+              ...plain,
+              id: 'analytics',
+              title: 'Показать аналитику',
+              keywords: 'графики дашборд analytics статистика фокус внимание',
+              always: true,
+              icon: <ChartColumn />,
+              run: () => void navigate({ to: '/', search: { ...search, screen: 'analytics' } }),
+            },
+          ]),
       {
         ...plain,
         id: 'new-project',

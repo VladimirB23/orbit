@@ -76,3 +76,9 @@ test('rows do not jump when the panel opens', async ({ page, orbit: _ }) => {
   await expect(panel(page)).toBeVisible();
   expect((await last.boundingBox())?.y).toBe(before?.y);
 });
+
+test('a broken address opens the usual tree', async ({ page, orbit }) => {
+  await page.goto(`${orbit.url}/?view=nope&status=x&archived=5&item=%3Cb%3E`);
+  await expect(row(page, 'Reading List')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Сбросить' })).toBeHidden();
+});

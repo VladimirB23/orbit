@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typer.testing import CliRunner
 
 from orbit.cli import app
+from orbit.db.models import Commit, WorkSession
 from orbit.domain.enums import Actor, Status
 from orbit.domain.service import Orbit
 from orbit.seed import seed_demo
@@ -51,6 +53,13 @@ def test_demo_projects_have_folders_notes_and_sessions(session: Session, clock: 
     assert len(sessions) >= 3
     assert all(s.ended_at > s.started_at for s in sessions)
     assert any(p.repo_path is None for p in orbit.list_projects())
+
+
+def test_demo_has_commits_next_to_sessions(session: Session, clock: FakeClock) -> None:
+    seed_demo(session, today=TODAY)
+    commits = list(session.scalars(select(Commit)))
+    assert len(commits) == sum(s.commits for s in session.scalars(select(WorkSession)))
+    assert all(c.committed_at.date() <= TODAY for c in commits)
 
 
 def test_demo_shows_every_kind_of_bar_on_the_timeline(session: Session, clock: FakeClock) -> None:

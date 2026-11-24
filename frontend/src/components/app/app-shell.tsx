@@ -1,6 +1,16 @@
 /** Frame around every screen: header, notifications, global shortcuts. */
 import { Link, Outlet, useNavigate, useSearch } from '@tanstack/react-router';
-import { ChartGantt, Keyboard, ListTree, Monitor, Moon, Plus, Search, Sun } from 'lucide-react';
+import {
+  ChartColumn,
+  ChartGantt,
+  Keyboard,
+  ListTree,
+  Monitor,
+  Moon,
+  Plus,
+  Search,
+  Sun,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { type LiveState, useLiveUpdates } from '@/api/live';
@@ -17,6 +27,7 @@ import { useUndo } from '@/features/item/use-undo';
 import { Palette } from '@/features/palette/palette';
 import { emitNewProject } from '@/lib/app-events';
 import { hotkey, isPaletteKey, undoKey } from '@/lib/hotkeys';
+import type { Screen } from '@/lib/search';
 import { type Theme, useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { ShortcutsDialog } from './shortcuts-dialog';
@@ -49,7 +60,8 @@ export function AppShell() {
         '/': () => document.getElementById('search')?.focus(),
         '?': () => setHelp(true),
         p: emitNewProject,
-        g: switchScreen,
+        g: () => switchScreen('timeline'),
+        a: () => switchScreen('analytics'),
       };
       const action = run[hotkey(event) ?? ''];
       if (!action) return;
@@ -130,34 +142,36 @@ export function AppShell() {
   );
 }
 
+/** The key of a screen brings it, pressed again it returns the tree. */
 function useSwitchScreen() {
   const navigate = useNavigate();
   return useCallback(
-    () =>
+    (screen: Screen) =>
       void navigate({
         to: '/',
-        search: (now) => ({ ...now, screen: now.screen ? undefined : 'timeline' }),
+        search: (now) => ({ ...now, screen: now.screen === screen ? undefined : screen }),
       }),
     [navigate],
   );
 }
 
-/** Two looks at the same rows: filters and the open panel stay. */
+/** Looks at the same projects: the project filter and the open panel stay. */
 function ScreenSwitch() {
   const { screen } = useSearch({ strict: false });
   const screens = [
-    { value: undefined, label: 'Дерево', Icon: ListTree },
-    { value: 'timeline' as const, label: 'Таймлайн', Icon: ChartGantt },
+    { value: undefined, label: 'Дерево', key: 'G', Icon: ListTree },
+    { value: 'timeline' as const, label: 'Таймлайн', key: 'G', Icon: ChartGantt },
+    { value: 'analytics' as const, label: 'Аналитика', key: 'A', Icon: ChartColumn },
   ];
   return (
     <nav aria-label="Экран" className="flex overflow-hidden rounded-lg border border-border">
-      {screens.map(({ value, label, Icon }) => (
+      {screens.map(({ value, label, key, Icon }) => (
         <Link
           key={label}
           to="/"
           search={(now) => ({ ...now, screen: value })}
           aria-current={screen === value ? 'page' : undefined}
-          title={`${label} (G)`}
+          title={`${label} (${key})`}
           className={cn(
             'flex h-7.5 items-center gap-1.5 px-2.5 text-muted-foreground text-sm hover:text-foreground',
             screen === value && 'bg-selected font-medium text-foreground',

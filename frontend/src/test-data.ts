@@ -1,6 +1,8 @@
 /** Builders for tests: only what a test cares about is spelled out. */
 import type {
   Actual,
+  Analytics,
+  FocusRow,
   MilestoneNode,
   MilestoneOut,
   ProjectNode,
@@ -135,4 +137,67 @@ export function project(
 
 export function tree(projects: ProjectNode[], today = '2026-11-24'): Tree {
   return { today, projects };
+}
+
+export function focusRow(row: Partial<FocusRow>): FocusRow {
+  return {
+    id: 1,
+    slug: 'a',
+    name: 'A',
+    status: 'in_progress',
+    priority: 0,
+    archived: false,
+    sessions: 0,
+    prompts: 0,
+    commits: 0,
+    closed: 0,
+    sessions_share: 0,
+    commits_share: 0,
+    share: 0,
+    expected: null,
+    attention: 'unknown',
+    last_day: null,
+    done: 0,
+    working: 0,
+    stuck: 0,
+    ahead: 0,
+    ...row,
+  };
+}
+
+export function analytics(data: Partial<Analytics>): Analytics {
+  const zero = { value: 0, before: null };
+  return {
+    today: '2026-11-25',
+    start: '2026-10-27',
+    end: '2026-11-25',
+    step: 'week',
+    steps: [],
+    totals: { sessions: zero, commits: zero, closed: zero, prompts: 0, born_closed: 0 },
+    focus: [],
+    activity: [],
+    closed: [],
+    born_closed: [],
+    cycle: {
+      items: [],
+      median: null,
+      p85: null,
+      needed: 10,
+      known: 0,
+      no_start: 0,
+      born_closed: 0,
+    },
+    plan: {
+      items: [],
+      needed: 3,
+      compared: 0,
+      late: 0,
+      automatic: 0,
+      no_due: 0,
+      set_after: 0,
+      born_closed: 0,
+    },
+    deadlines: [],
+    ...data,
+  };
 }

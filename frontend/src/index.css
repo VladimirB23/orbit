@@ -37,6 +37,22 @@
   --idle: #64708c;
   --idle-wash: #eaeef4;
 
+  /* Charts: checked for color blindness on both cards (dataviz palette validator). */
+  --chart-done: #147a5c;
+  --chart-work: #d98e04;
+  --chart-stuck: #8836a3;
+  --chart-bar: #2f62c4;
+  --chart-late: #c4283a;
+  --track: #e1e7f0;
+  --heat-1: #dbe7fb;
+  --heat-2: #b1caf4;
+  --heat-3: #6f9ae4;
+  --heat-4: #2f62c4;
+  --heat-ink-1: #17233f;
+  --heat-ink-2: #17233f;
+  --heat-ink-3: #0f1830;
+  --heat-ink-4: #ffffff;
+
   --radius: 0.5rem;
   color-scheme: light;
 }
@@ -72,6 +88,21 @@
   --planned-wash: #203763;
   --idle: #8c9bb9;
   --idle-wash: #26324f;
+
+  --chart-done: #2fa37c;
+  --chart-work: #c2850f;
+  --chart-stuck: #b065c9;
+  --chart-bar: #6c9bf0;
+  --chart-late: #ff8a8f;
+  --track: #2c3a59;
+  --heat-1: #233a66;
+  --heat-2: #2f5296;
+  --heat-3: #5b87d9;
+  --heat-4: #8db4ff;
+  --heat-ink-1: #e7edf8;
+  --heat-ink-2: #ffffff;
+  --heat-ink-3: #0b1322;
+  --heat-ink-4: #111a2e;
   color-scheme: dark;
 }
 
@@ -113,6 +144,12 @@
   --color-planned-wash: var(--planned-wash);
   --color-idle: var(--idle);
   --color-idle-wash: var(--idle-wash);
+  --color-chart-done: var(--chart-done);
+  --color-chart-work: var(--chart-work);
+  --color-chart-stuck: var(--chart-stuck);
+  --color-chart-bar: var(--chart-bar);
+  --color-chart-late: var(--chart-late);
+  --color-track: var(--track);
 
   --radius-sm: calc(var(--radius) - 3px);
   --radius-md: calc(var(--radius) - 1px);
@@ -261,6 +298,29 @@
 }
 .bar-open {
   mask-image: linear-gradient(to right, #000 calc(100% - min(1.75rem, 60%)), transparent);
+}
+
+/* The analytics: cards react to their own width, the side panel narrows them too. */
+.heat-1 {
+  background: var(--heat-1);
+  color: var(--heat-ink-1);
+}
+.heat-2 {
+  background: var(--heat-2);
+  color: var(--heat-ink-2);
+}
+.heat-3 {
+  background: var(--heat-3);
+  color: var(--heat-ink-3);
+}
+.heat-4 {
+  background: var(--heat-4);
+  color: var(--heat-ink-4);
+}
+/* Written down already closed: drawn, but not as solid work. */
+.born-closed {
+  background: repeating-linear-gradient(135deg, var(--chart-done) 0 1.5px, transparent 1.5px 4px);
+  box-shadow: inset 0 0 0 1px var(--chart-done);
 }
 
 [data-sonner-toaster] {

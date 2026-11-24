@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useMeta, useTree } from '@/api/queries';
 import { Button } from '@/components/ui/button';
+import { AnalyticsView } from '@/features/analytics/analytics-view';
 import { ItemPanel, useEscape } from '@/features/item/item-panel';
 import { places } from '@/features/item/places';
 import { useEdit } from '@/features/item/use-edit';
@@ -62,6 +63,7 @@ export function TreePage() {
   const [toggled, setToggled] = useState(NO_TOGGLES);
   const [zoom, setZoom] = usePersisted<Zoom>('orbit.zoom', 'weeks', asZoom);
   const onTimeline = search.screen === 'timeline';
+  const onAnalytics = search.screen === 'analytics';
   const [treeFields, setTreeFields] = usePersisted('orbit.fields', DEFAULT_COLUMNS, parseColumns);
   const [timeFields, setTimeFields] = usePersisted(
     'orbit.fields.timeline',
@@ -282,21 +284,34 @@ export function TreePage() {
   return (
     <div className="flex min-h-0 flex-1">
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-border border-b px-4 py-2.5">
-          <SummaryBar filter={filter} counts={counts} onFilter={setFilter} />
-          <div className="flex min-w-64 flex-1 items-center justify-end gap-2">
-            <SearchField value={filter.q} onChange={setQuery} />
-            <FilterMenu
-              filter={filter}
-              archived={archived}
-              projects={projects}
-              onFilter={setFilter}
-              onArchived={(value) => setSearch({ archived: value || undefined })}
-              onReset={reset}
-            />
+        {!onAnalytics && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-border border-b px-4 py-2.5">
+            <SummaryBar filter={filter} counts={counts} onFilter={setFilter} />
+            <div className="flex min-w-64 flex-1 items-center justify-end gap-2">
+              <SearchField value={filter.q} onChange={setQuery} />
+              <FilterMenu
+                filter={filter}
+                archived={archived}
+                projects={projects}
+                onFilter={setFilter}
+                onArchived={(value) => setSearch({ archived: value || undefined })}
+                onReset={reset}
+              />
+            </div>
           </div>
-        </div>
-        {onTimeline ? (
+        )}
+        {onAnalytics ? (
+          <AnalyticsView
+            search={search}
+            today={tree.data.today}
+            projects={projects}
+            onSearch={setSearch}
+            onOpen={(key) => {
+              const item = findItem(items, key);
+              if (item) open(item);
+            }}
+          />
+        ) : onTimeline ? (
           <TimelineView
             {...view}
             items={items}

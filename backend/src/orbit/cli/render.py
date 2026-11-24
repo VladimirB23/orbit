@@ -212,7 +212,7 @@ def stats(data: dict[str, Any]) -> None:
     table = Table()
     table.add_column("project", no_wrap=True)
     for column in ("ses.", "com.", "closed"):
-        table.add_column(column, justify="right")
+        table.add_column(column, justify="right", no_wrap=True)
     for column in ("share", "wanted", "attention", "moved"):
         table.add_column(column, no_wrap=True)
     for row in data["focus"]:

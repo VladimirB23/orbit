@@ -16,7 +16,17 @@ describe('parseTreeSearch', () => {
 
   it('knows the screen', () => {
     expect(parseTreeSearch({ screen: 'timeline' })).toEqual({ screen: 'timeline' });
+    expect(parseTreeSearch({ screen: 'analytics' })).toEqual({ screen: 'analytics' });
     expect(parseTreeSearch({ screen: 'else' })).toEqual({});
+  });
+
+  it('knows the period of the analytics', () => {
+    expect(parseTreeSearch({ period: '7d' })).toEqual({ period: '7d' });
+    expect(parseTreeSearch({ period: 'all' })).toEqual({ period: 'all' });
+    expect(parseTreeSearch({ period: '31d' })).toEqual({});
+    const own = { from: '2026-11-01', to: '2026-11-10' };
+    expect(parseTreeSearch(own)).toEqual(own);
+    expect(parseTreeSearch({ from: '2026-13-01', to: 'soon' })).toEqual({});
   });
 
   it('drops anything unexpected instead of breaking the page', () => {
