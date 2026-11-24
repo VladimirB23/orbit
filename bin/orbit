@@ -1,0 +1,3 @@
+#!/bin/sh
+# orbit launcher for Git Bash: Smart App Control blocks the generated orbit.exe.
+exec uv run --quiet --project "$(dirname "$0")/../backend" python -m orbit "$@"

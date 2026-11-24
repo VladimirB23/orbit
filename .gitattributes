@@ -6,3 +6,6 @@
 *.jpg binary
 *.ico binary
 *.db binary
+
+# Windows batch files need CRLF
+*.cmd text eol=crlf
