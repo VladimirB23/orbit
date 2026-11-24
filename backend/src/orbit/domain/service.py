@@ -31,6 +31,8 @@ from orbit.domain.rules import (
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SLUG_MAX = 64
+NAME_MAX = 200
+TITLE_MAX = 300
 UPCOMING_DAYS = 7
 
 PROJECT_FIELDS = frozenset(
@@ -122,8 +124,8 @@ def _position(value: Any) -> int:
 
 CLEANERS: dict[str, Callable[[Any], Any]] = {
     "slug": _slug,
-    "name": _required_text("name", 200),
-    "title": _required_text("title", 300),
+    "name": _required_text("name", NAME_MAX),
+    "title": _required_text("title", TITLE_MAX),
     "status": lambda v: parse_status(str(v)).value,
     "priority": lambda v: parse_priority(v).value,
     "start_date": _date,
@@ -314,15 +316,16 @@ class Orbit:
         entity_id: int | None = None,
         limit: int | None = None,
     ) -> list[Event]:
-        query = select(Event).order_by(Event.at, Event.id)
+        query = select(Event).order_by(Event.at.desc(), Event.id.desc())
         if since is not None:
             query = query.where(Event.at >= since)
         if entity is not None:
             query = query.where(Event.entity == Entity(entity).value)
         if entity_id is not None:
             query = query.where(Event.entity_id == entity_id)
-        rows = list(self.session.scalars(query))
-        return rows[-limit:] if limit else rows
+        if limit:
+            query = query.limit(limit)
+        return list(self.session.scalars(query))[::-1]
 
     # --- generic create / update / delete -------------------------------------
 
