@@ -12,7 +12,8 @@
   `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`, `journal.py` (разбор
   журналов сессий из Obsidian), `sync.py` (импорт сам, пока работает сервер); тесты `backend/tests/`.
 - `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом.
-- `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны),
+- `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны; `tree` и
+  `timeline` - два вида одних строк, `?screen=timeline`),
   `src/components/ui/` (shadcn), `src/index.css` (все цвета и отступы), `e2e/` (Playwright, свой сервер на тест).
 - `data/`: живая база `orbit.db`, настройки `orbit.toml` (`vault = '...'`), бэкапы, `demo.db` — только
   локально, в git не попадает.
@@ -75,6 +76,7 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Доменная логика (статусы, прогресс, `events`) — сначала тест, потом код.
 - Любое изменение схемы — миграция Alembic плюс тест.
 - Изменил API: `npm run gen:api`, иначе упадет `test_contract.py`. Формат ответов `/api/v1` не ломать.
+- Что и где рисует таймлайн, решает `frontend/src/lib/timeline.ts` (тесты рядом); факт работы (`actual`) считает домен по `events`.
 - Новая ссылка наружу: путь проверяется в `frontend/src/lib/links.ts`, сетевые пути и чужие схемы не ссылки.
 - Сервер слушает только `127.0.0.1`; открыть наружу можно только с токенами и новым ADR.
 - Реальная база никогда не попадает в git, скриншоты и демо — только на `orbit seed --demo`.
