@@ -22,7 +22,9 @@ from orbit.domain.sessions import SessionRecord
 
 
 @dataclass
-class _ReplayClock:
+class ReplayClock:
+    """Stands where a story puts it; `today` is the end of the story."""
+
     base: date
     current: datetime = field(init=False)
 
@@ -30,8 +32,10 @@ class _ReplayClock:
         self.at(28)
 
     def at(self, days_ago: int, hour: int = 10) -> None:
-        local = datetime.combine(self.base - timedelta(days=days_ago), time(hour))
-        self.current = local.astimezone().astimezone(UTC)
+        self.local(datetime.combine(self.base - timedelta(days=days_ago), time(hour)))
+
+    def local(self, moment: datetime) -> None:
+        self.current = moment.astimezone().astimezone(UTC)
 
     def now(self) -> datetime:
         return self.current
@@ -44,7 +48,7 @@ class _ReplayClock:
 
 
 def seed_demo(session: Session, today: date) -> dict[str, int]:
-    clock = _ReplayClock(today)
+    clock = ReplayClock(today)
     vlad = Orbit(session, actor=Actor.VLADIMIR, clock=clock)
     claude = Orbit(session, actor=Actor.CLAUDE, clock=clock)
     vlad.batch = claude.batch = None  # a whole story is not one action to undo

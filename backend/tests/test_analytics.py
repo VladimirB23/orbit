@@ -18,7 +18,6 @@ from orbit.domain.rules import (
     attention,
     attention_share,
     canceled_out,
-    expected_shares,
 )
 from orbit.domain.service import Orbit
 from orbit.domain.sessions import SessionRecord
@@ -270,21 +269,62 @@ def test_attention_is_the_mean_of_both_shares() -> None:
     assert attention_share(0, 0, 0, 0) == 0.0
 
 
-def test_expected_share_follows_priority_of_projects_in_progress() -> None:
-    def expected(*priorities: int) -> list[float]:
-        named = {str(i): p for i, p in enumerate(priorities)}
-        return list(expected_shares(named, with_code=set(), sessions=9, commits=0).values())
-
-    assert expected(3, 1) == [0.75, 0.25]
-    assert expected(0, 0) == [0.5, 0.5]  # no priority: equal parts
-    assert expected() == []
+def expected(story: Story) -> dict[str, float | None]:
+    return {
+        f.slug: None if f.expected is None else round(f.expected, 4)
+        for f in whole(story.orbit).focus
+    }
 
 
-def test_commits_are_expected_only_where_there_is_code() -> None:
-    both = expected_shares({"code": 1, "talk": 1}, with_code={"code"}, sessions=9, commits=9)
-    assert both == {"code": 0.75, "talk": 0.25}
-    none = expected_shares({"talk": 1}, with_code=set(), sessions=9, commits=9)
-    assert none == {"talk": 1.0}
+def test_expected_share_follows_priority_of_projects_under_way(story: Story) -> None:
+    story.project("high", priority=3)
+    story.project("low", priority=1)
+    story.project("idea", status=BACKLOG, priority=4)
+    story.session(0, "high")
+    story.session(0, "low")
+    assert expected(story) == {"high": 0.75, "low": 0.25, "idea": None}
+
+
+def test_without_priorities_parts_are_equal(story: Story) -> None:
+    story.project("a")
+    story.project("b")
+    story.session(0, "a")
+    assert expected(story) == {"a": 0.5, "b": 0.5}
+
+
+def test_commits_are_expected_only_where_there_is_code(story: Story) -> None:
+    for slug in ("code", "talk"):
+        story.project(slug)
+        story.session(0, slug)
+    story.commits("code", 0)
+    assert expected(story) == {"code": 0.75, "talk": 0.25}
+
+
+def test_nothing_is_expected_of_the_days_before_a_project_began(story: Story) -> None:
+    """Happened in a long demo: a project of three weeks looked neglected over three months."""
+    story.on(-30).project("old")
+    for day in range(-30, -20):
+        story.session(day, "old")
+    story.on(-2).project("new")
+    story.on(0)
+    story.session(-2, "new")
+    rows = {f.slug: f for f in whole(story.orbit).focus}
+    assert rows["new"].expected == pytest.approx(0.5 / 11)
+    assert rows["new"].attention is not Attention.LOW
+
+
+def test_the_time_of_finished_projects_is_not_expected_of_the_running(story: Story) -> None:
+    story.on(-30).project("done")
+    for day in range(-30, -20):
+        story.session(day, "done")
+    story.on(-20).orbit.update_project("done", status=DONE)
+    story.on(-30).project("slow")
+    story.on(0)
+    story.session(-1, "slow")
+    rows = {f.slug: f for f in whole(story.orbit).focus}
+    assert rows["done"].expected is None  # nothing is expected of it any more
+    # Ten days were shared by two, one day was its own: (10 / 2 + 1) / 11.
+    assert rows["slow"].expected == pytest.approx(6 / 11)
 
 
 @pytest.mark.parametrize(
@@ -304,23 +344,24 @@ def test_attention(share: float, expected: float | None, total: int, result: Att
 
 
 def test_focus_says_where_attention_is_missing(story: Story) -> None:
-    story.project("geo", priority=2)
+    story.on(-10).project("geo", priority=2)
     story.project("job", priority=3)
     story.project("idea", status=BACKLOG, priority=4)
+    story.on(0)
     for day in range(9):
         story.session(-day, "geo")
     story.session(0, "job")
     rows = {f.slug: f for f in whole(story.orbit).focus}
     assert rows["geo"].attention is Attention.HIGH
     assert rows["job"].attention is Attention.LOW
-    assert rows["job"].expected == pytest.approx(0.6)
     assert (rows["idea"].expected, rows["idea"].attention) == (None, Attention.UNKNOWN)
 
 
 def test_commits_count_as_attention(story: Story) -> None:
     """Happened for real: four huge sessions looked like neglect until commits were counted."""
-    story.project("geo", priority=2)
+    story.on(-10).project("geo", priority=2)
     story.project("orbit", priority=3)
+    story.on(0)
     for day in range(9):
         story.session(-day, "geo")
     story.session(0, "orbit")

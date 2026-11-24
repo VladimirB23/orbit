@@ -1,6 +1,6 @@
 """Pure business rules: no database, no clock, easy to test."""
 
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from enum import StrEnum
@@ -169,29 +169,6 @@ def attention_share(sessions: int, all_sessions: int, commits: int, all_commits:
         if whole > 0
     ]
     return sum(parts) / len(parts) if parts else 0.0
-
-
-def _by_weight(priorities: Mapping[str, int]) -> dict[str, float]:
-    """No priority weighs as much as the lowest one."""
-    weights = {slug: max(priority, 1) for slug, priority in priorities.items()}
-    total = sum(weights.values())
-    return {slug: weight / total for slug, weight in weights.items()}
-
-
-def expected_shares(
-    priorities: Mapping[str, int], *, with_code: Collection[str], sessions: int, commits: int
-) -> dict[str, float]:
-    """Part of attention by priority. Commits are expected only of projects that have code."""
-    parts = []
-    if sessions or not commits:
-        parts.append(_by_weight(priorities))
-    code = {slug: priority for slug, priority in priorities.items() if slug in with_code}
-    if commits and code:
-        parts.append(_by_weight(code))
-    return {
-        slug: sum(part.get(slug, 0.0) for part in parts) / len(parts) if parts else 0.0
-        for slug in priorities
-    }
 
 
 def attention(share: float, expected: float | None, facts: int) -> Attention:

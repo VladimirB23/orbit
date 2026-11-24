@@ -9,6 +9,7 @@ WITH births AS (
         entity_id,
         id    AS born_id,
         batch AS born_batch,
+        actor AS born_actor,
         day   AS born_day,
         json_extract(new_value, '$.status')   AS born_status,
         json_extract(new_value, '$.due_date') AS born_due,
@@ -16,6 +17,6 @@ WITH births AS (
     FROM events_in_force
     WHERE action = 'create'
 )
-SELECT entity, entity_id, born_id, born_batch, born_day, born_status, born_due
+SELECT entity, entity_id, born_id, born_batch, born_actor, born_day, born_status, born_due
 FROM births
 WHERE from_last = 1

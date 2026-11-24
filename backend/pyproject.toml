@@ -41,6 +41,9 @@ allowed-confusables = ["–"]
 [tool.ruff.lint.per-file-ignores]
 # Generated migrations keep long SQL literals on one line
 "src/orbit/db/migrations/versions/*" = ["E501"]
+# The dictionary of the export is in Russian
+"src/orbit/export.py" = ["RUF001"]
+"tests/test_export.py" = ["RUF001"]
 
 [tool.mypy]
 strict = true

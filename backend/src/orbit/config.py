@@ -13,6 +13,7 @@ from orbit.domain.errors import ValidationError
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "orbit.db"
 DEMO_DB_PATH = REPO_ROOT / "data" / "demo.db"
+HISTORY_DB_PATH = REPO_ROOT / "data" / "demo-half-year.db"
 UI_DIR = REPO_ROOT / "frontend" / "dist"
 DEFAULT_PORT = 8420
 

@@ -10,7 +10,7 @@ from sqlalchemy import RowMapping, text
 
 from orbit.domain.enums import Status
 from orbit.domain.errors import ValidationError
-from orbit.domain.rules import Attention, attention, attention_share, expected_shares
+from orbit.domain.rules import Attention, attention, attention_share
 from orbit.domain.service import Orbit, ReportItem
 
 VIEWS = (
@@ -103,7 +103,7 @@ class FocusRow:
     sessions_share: float
     commits_share: float
     share: float  # of attention: the mean of both
-    expected: float | None  # by priority among projects in progress
+    expected: float | None  # by priority; None when the project is not in progress
     attention: Attention
     last_day: date | None  # of a session, a commit or a change of status
     done: int
@@ -198,7 +198,8 @@ class Analytics:
 
 @cache
 def load_sql(name: str) -> str:
-    return (files("orbit.domain") / "sql" / f"{name}.sql").read_text(encoding="utf-8")
+    path = files("orbit.domain") / "sql" / f"{name}.sql"
+    return path.read_text(encoding="utf-8")
 
 
 def prepare(orbit: Orbit) -> None:
@@ -298,16 +299,22 @@ def _totals(orbit: Orbit, period: Period, project_id: int | None) -> Totals:
     )
 
 
+def _expected(orbit: Orbit, scope: dict[str, Any], kinds: int) -> dict[str, float]:
+    """Mean over the kinds there are; a project without code gets nothing for commits."""
+    result: dict[str, float] = {}
+    for row in _rows(
+        orbit, "expected", start=scope["start"], end=scope["end"], today=orbit.clock.today()
+    ):
+        result[row["slug"]] = result.get(row["slug"], 0.0) + row["expected"] / kinds
+    running = [p.slug for p in orbit.list_projects() if p.status == Status.IN_PROGRESS]
+    return {slug: result.get(slug, 0.0) for slug in running}
+
+
 def _focus(orbit: Orbit, scope: dict[str, Any]) -> list[FocusRow]:
     every = _rows(orbit, "focus", **{**scope, "project": None}, today=orbit.clock.today())
     sessions = every[0]["all_sessions"] if every else 0
     commits = every[0]["all_commits"] if every else 0
-    expected = expected_shares(
-        {p.slug: p.priority for p in orbit.list_projects() if p.status == Status.IN_PROGRESS},
-        with_code={row["slug"] for row in every if row["has_code"]},
-        sessions=sessions,
-        commits=commits,
-    )
+    expected = _expected(orbit, scope, kinds=max((sessions > 0) + (commits > 0), 1))
 
     def focus(row: RowMapping) -> FocusRow:
         share = attention_share(row["sessions"], sessions, row["commits"], commits)

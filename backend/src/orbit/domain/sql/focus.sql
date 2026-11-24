@@ -46,7 +46,6 @@ shares AS (
         COALESCE(a.closed, 0)   AS closed,
         COALESCE(SUM(a.sessions) OVER (), 0) AS all_sessions,
         COALESCE(SUM(a.commits) OVER (), 0)  AS all_commits,
-        EXISTS (SELECT 1 FROM commits AS c WHERE c.project_id = p.id) AS has_code,
         COALESCE(s.done, 0)    AS done,
         COALESCE(s.working, 0) AS working,
         COALESCE(s.stuck, 0)   AS stuck,

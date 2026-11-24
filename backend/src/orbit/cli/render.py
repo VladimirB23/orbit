@@ -231,6 +231,15 @@ def stats(data: dict[str, Any]) -> None:
     out.print(table)
 
 
+def export(data: dict[str, Any]) -> None:
+    out = console()
+    for name, rows in data["tables"].items():
+        out.print(f"{name}.csv: {rows}")
+    out.print(f"written to {escape(data['path'])}, fields are described in DICTIONARY.md")
+    if data["warning"]:
+        out.print(f"[bold red]WARNING: {data['warning']}[/]")
+
+
 def commit_import(data: dict[str, Any]) -> None:
     out = console()
     for slug, done in data["projects"].items():

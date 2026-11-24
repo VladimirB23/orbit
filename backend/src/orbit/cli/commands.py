@@ -22,6 +22,7 @@ from orbit.config import (
     DEFAULT_DB_PATH,
     DEFAULT_PORT,
     DEMO_DB_PATH,
+    HISTORY_DB_PATH,
     is_demo,
     load_settings,
     settings_file,
@@ -36,9 +37,11 @@ from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, OrbitError, ValidationError
 from orbit.domain.rules import actor_from_env, is_overdue
 from orbit.domain.service import Orbit
+from orbit.export import export_csv
 from orbit.gitlog import local_folder, read_commits
 from orbit.journal import read_journals
 from orbit.seed import seed_demo
+from orbit.seed_history import seed_history
 
 app = typer.Typer(
     help="Orbit: projects, milestones and tasks with statuses and deadlines.",
@@ -164,6 +167,13 @@ def nullable_id(value: str) -> int | None:
         return int(cleared)
     except ValueError:
         raise ValidationError(f"expected a numeric id or 'none', got '{value}'") from None
+
+
+def parse_day(value: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise ValidationError(f"invalid date '{value}', expected YYYY-MM-DD") from None
 
 
 def parse_since(value: str, now: datetime) -> datetime:
@@ -736,6 +746,32 @@ def openapi() -> None:
     emit_json(create_app(DEFAULT_DB_PATH).openapi())
 
 
+# --- export -------------------------------------------------------------------
+
+EXPORT_WARNING = "real data: do not publish it (Tableau Public shows everything to everyone)"
+
+
+@app.command()
+def export(
+    ctx: typer.Context,
+    csv_: Annotated[Path, typer.Option("--csv", help="Target folder, e.g. out/tableau.")],
+    json_out: JsonOpt = False,
+) -> None:
+    """Facts and dimensions as CSV for Tableau, with a dictionary of fields."""
+    demo = is_demo(ctx.obj.db)
+
+    def action(o: Orbit) -> dict[str, Any]:
+        folder = csv_.expanduser().resolve()
+        return {
+            "path": str(folder),
+            "demo": demo,
+            "warning": None if demo else EXPORT_WARNING,
+            "tables": export_csv(o, folder, private=not demo),
+        }
+
+    execute(ctx, json_out, action, render.export)
+
+
 # --- maintenance --------------------------------------------------------------
 
 
@@ -802,15 +838,25 @@ def db_upgrade(ctx: typer.Context, json_out: JsonOpt = False) -> None:
 def seed(
     ctx: typer.Context,
     demo: Annotated[bool, typer.Option("--demo", help="Fill with fictional demo data.")] = False,
+    half_year: Annotated[
+        bool, typer.Option("--half-year", help="A long history for a public dashboard.")
+    ] = False,
+    until: Annotated[
+        str | None, typer.Option("--until", help="Last day of the long history (default: today).")
+    ] = None,
     reset: Annotated[bool, typer.Option("--reset", help="Recreate the database first.")] = False,
     json_out: JsonOpt = False,
 ) -> None:
-    """Demo data for screenshots (default target: data/demo.db, never data/orbit.db)."""
+    """Demo data for screenshots (default target: data/demo*.db, never data/orbit.db)."""
     state: State = ctx.obj
-    target = state.db if state.explicit else DEMO_DB_PATH
+    default = HISTORY_DB_PATH if half_year else DEMO_DB_PATH
+    target = state.db if state.explicit else default
     try:
         if not demo:
             raise ValidationError("only demo data is supported: orbit seed --demo")
+        if until is not None and not half_year:
+            raise ValidationError("--until works only with --half-year")
+        last = parse_day(until) if until is not None else date.today()
         if target.resolve() == DEFAULT_DB_PATH.resolve():
             raise ValidationError(
                 f"refusing to seed the real database {target}; pass --db with another file"
@@ -824,7 +870,8 @@ def seed(
             with Session(engine) as session:
                 if session.scalar(select(func.count()).select_from(Project)):
                     raise ConflictError(f"{target} is not empty; use --reset to recreate it")
-                counts = seed_demo(session, today=date.today())
+                fill = seed_history if half_year else seed_demo
+                counts = fill(session, last)
                 session.commit()
         finally:
             engine.dispose()
