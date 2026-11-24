@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayDiff, dueHint, formatDay, relativeTime } from './dates';
+import { addDays, dayDiff, dueHint, formatDay, period, plural, relativeTime } from './dates';
 
 const TODAY = '2026-11-24';
 
@@ -49,5 +49,32 @@ describe('relativeTime', () => {
 
   it('switches to the date after a day', () => {
     expect(relativeTime('2026-11-20T09:05:00Z', now)).toMatch(/^20 ноя, \d\d:\d\d$/);
+  });
+});
+
+describe('period', () => {
+  const at = (day: number, hour: number, minute: number) =>
+    new Date(2026, 10, day, hour, minute).toISOString();
+
+  it('one day: the day and the hours', () => {
+    expect(period(at(24, 15, 4), at(24, 17, 15))).toBe('24 ноя, 15:04–17:15');
+  });
+
+  it('several days: only the days, a session resumed later did not last all night', () => {
+    expect(period(at(21, 14, 40), at(23, 21, 24))).toBe('21 ноя – 23 ноя');
+  });
+});
+
+describe('plural', () => {
+  it('picks the Russian form by the number', () => {
+    const files = (n: number) => `${n} ${plural(n, 'файл', 'файла', 'файлов')}`;
+    expect([1, 3, 5, 11, 21, 112].map(files)).toEqual([
+      '1 файл',
+      '3 файла',
+      '5 файлов',
+      '11 файлов',
+      '21 файл',
+      '112 файлов',
+    ]);
   });
 });

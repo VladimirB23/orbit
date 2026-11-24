@@ -7,6 +7,8 @@ import { cli, freePort, serve, stop, TEMPLATE } from './orbit';
 interface Orbit {
   db: string;
   url: string;
+  /** An empty Obsidian vault of this test. */
+  vault: string;
   cli: (...args: string[]) => ReturnType<typeof cli>;
   stopServer: () => Promise<void>;
   startServer: () => Promise<void>;
@@ -17,18 +19,20 @@ export const test = base.extend<{ orbit: Orbit; problems: string[] }>({
     const folder = mkdtempSync(join(tmpdir(), 'orbit-e2e-'));
     const db = join(folder, 'demo.db');
     copyFileSync(TEMPLATE, db);
+    const vault = join(folder, 'Study vault');
     const port = await freePort();
-    let server = await serve(db, port);
+    let server = await serve(db, port, vault);
     const url = `http://127.0.0.1:${port}`;
     await page.goto(url);
     await page.getByRole('treegrid').waitFor();
     await use({
       db,
       url,
+      vault,
       cli: (...args) => cli(db, ...args),
       stopServer: () => stop(server),
       startServer: async () => {
-        server = await serve(db, port);
+        server = await serve(db, port, vault);
       },
     });
     await page.close();

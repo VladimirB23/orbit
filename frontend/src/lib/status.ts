@@ -1,5 +1,6 @@
 /** Words and order for statuses and priorities: one place for the whole interface. */
 import type { Status } from '@/api/types';
+import type { View } from './tree';
 
 export const STATUSES: Status[] = [
   'backlog',
@@ -19,6 +20,13 @@ export const STATUS_LABEL: Record<Status, string> = {
   blocked: 'Заблокировано',
   done: 'Готово',
   canceled: 'Отменено',
+};
+
+export const VIEW_LABEL: Record<View, string> = {
+  in_progress: 'В работе',
+  blocked: 'Заблокировано',
+  overdue: 'Просрочено',
+  upcoming: 'Ближайшие 7 дней',
 };
 
 export const PRIORITIES = [0, 1, 2, 3, 4] as const;

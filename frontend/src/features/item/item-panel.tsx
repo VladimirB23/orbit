@@ -1,7 +1,7 @@
 /** Side panel: every field of the chosen row and its history. */
 import { ExternalLink, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { Meta } from '@/api/types';
+import type { Meta, ProjectOut } from '@/api/types';
 import { DateField } from '@/components/fields/date-field';
 import { PriorityMenu, StatusMenu } from '@/components/fields/status-menu';
 import { TextEditor } from '@/components/fields/text-editor';
@@ -21,12 +21,16 @@ import { isClosed, PRIORITY_LABEL, STATUS_LABEL } from '@/lib/status';
 import type { TreeItem } from '@/lib/tree';
 import { cn } from '@/lib/utils';
 import { History } from './history';
+import { Places } from './places';
+import { Sessions } from './sessions';
 import { type Edit, noteField, titleField } from './use-edit';
 
 const ENTITY_LABEL = { project: 'Проект', milestone: 'Этап', task: 'Задача' } as const;
 
 interface Props {
   item: TreeItem;
+  /** The project the item belongs to (itself for a project). */
+  project: ProjectOut | null;
   path: TreeItem[];
   /** Milestones of the same project, to move a task between them. */
   milestones: TreeItem[];
@@ -85,6 +89,8 @@ export function ItemPanel(props: Props) {
           className="-mx-2 w-[calc(100%+1rem)] font-semibold text-lg leading-snug"
           onSave={(text) => save({ [titleField(item)]: text })}
         />
+
+        {props.project && <Places project={props.project} />}
 
         <dl className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-y-0.5">
           <Field label="Статус">
@@ -213,6 +219,8 @@ export function ItemPanel(props: Props) {
             </Field>
           </dl>
         )}
+
+        {project && <Sessions key={project.slug} slug={project.slug} />}
 
         <History entity={item.entity} id={item.id} />
       </div>

@@ -1,5 +1,6 @@
-import { ChevronRight, Ellipsis, Plus } from 'lucide-react';
+import { ChevronRight, Ellipsis, Folder, Plus } from 'lucide-react';
 import type { Meta } from '@/api/types';
+import { copyText } from '@/components/copy-button';
 import { DateField } from '@/components/fields/date-field';
 import { StatusMenu } from '@/components/fields/status-menu';
 import { TextEditor } from '@/components/fields/text-editor';
@@ -13,6 +14,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { usePlaces } from '@/features/item/places';
 import { noteField, titleField } from '@/features/item/use-edit';
 import { type Day, dueHint, formatDay } from '@/lib/dates';
 import { isClosed, PRIORITY_LABEL, STATUS_LABEL } from '@/lib/status';
@@ -281,6 +283,7 @@ export function TreeRow(props: Props) {
             )}
           </button>
         )}
+        {isProject && <FolderLink item={item} tab={tab} />}
       </div>
 
       <div role="gridcell" className="text-right">
@@ -302,6 +305,24 @@ export function TreeRow(props: Props) {
         </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+/** Where the project lies on the disk, always in sight; a click opens it in VS Code. */
+function FolderLink({ item, tab }: { item: TreeItem; tab: number }) {
+  const { folder, vscode } = usePlaces(item.project);
+  if (!folder || !vscode) return null;
+  return (
+    <a
+      href={vscode}
+      tabIndex={tab}
+      title={`Открыть в VS Code: ${folder}`}
+      aria-label={`Открыть в VS Code: ${folder}`}
+      className="ml-1.5 flex h-[1.625rem] w-fit max-w-full items-center gap-1 rounded-sm text-muted-foreground text-xs hover:text-foreground hover:underline"
+    >
+      <Folder aria-hidden="true" className="size-3 shrink-0" />
+      <span className="truncate">{folder}</span>
+    </a>
   );
 }
 
@@ -387,6 +408,7 @@ function RowMenu(props: { item: TreeItem; archived: boolean; actions: RowActions
         {item.entity === 'task' ? 'Добавить подзадачу' : 'Добавить задачу'}
         <DropdownMenuShortcut>N</DropdownMenuShortcut>
       </DropdownMenuItem>
+      {isProject && <PlaceItems item={item} actions={actions} />}
       <DropdownMenuSeparator />
       {isProject ? (
         <DropdownMenuItem onSelect={() => actions.setArchived(item, !archived)}>
@@ -398,5 +420,30 @@ function RowMenu(props: { item: TreeItem; archived: boolean; actions: RowActions
         </DropdownMenuItem>
       )}
     </DropdownMenuContent>
+  );
+}
+
+function PlaceItems({ item, actions }: { item: TreeItem; actions: RowActions }) {
+  const { folder, vscode, note } = usePlaces(item.project);
+  if (!vscode && !note) return null;
+  return (
+    <>
+      <DropdownMenuSeparator />
+      {vscode && (
+        <DropdownMenuItem onSelect={() => actions.openPlace(item, 'vscode')}>
+          Открыть в VS Code <DropdownMenuShortcut>O</DropdownMenuShortcut>
+        </DropdownMenuItem>
+      )}
+      {folder && (
+        <DropdownMenuItem onSelect={() => void copyText(folder)}>
+          Скопировать адрес папки
+        </DropdownMenuItem>
+      )}
+      {note && (
+        <DropdownMenuItem onSelect={() => actions.openPlace(item, 'note')}>
+          Заметка в Obsidian <DropdownMenuShortcut>Shift+O</DropdownMenuShortcut>
+        </DropdownMenuItem>
+      )}
+    </>
   );
 }

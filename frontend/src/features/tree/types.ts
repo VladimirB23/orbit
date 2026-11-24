@@ -17,5 +17,7 @@ export interface RowActions {
   setMenu: (item: TreeItem, menu: CellMenu | null) => void;
   startAdd: (item: TreeItem, kind: AddKind) => void;
   remove: (item: TreeItem) => void;
+  /** The folder or the note of the project the row belongs to. */
+  openPlace: (item: TreeItem, place: 'vscode' | 'note') => void;
   setArchived: (item: TreeItem, archived: boolean) => void;
 }

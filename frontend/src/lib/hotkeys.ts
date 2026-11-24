@@ -17,6 +17,10 @@ const QUIET = [
   '[role="alertdialog"]',
 ].join(',');
 
+/** Ctrl+K works everywhere, even inside a field: the palette is the way out of it. */
+export const isPaletteKey = (event: KeyboardEvent): boolean =>
+  event.code === 'KeyK' && (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
+
 export function hotkey(event: KeyboardEvent): string | null {
   if (event.ctrlKey || event.altKey || event.metaKey || event.defaultPrevented) return null;
   if (event.target instanceof Element && event.target.closest(QUIET)) return null;

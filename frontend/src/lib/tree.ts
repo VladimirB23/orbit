@@ -192,7 +192,7 @@ const IN_VIEW: Record<View, (item: TreeItem) => boolean> = {
   upcoming: (item) => item.upcoming,
 };
 
-const normalize = (text: string) => text.toLowerCase().replaceAll('\u0451', 'е');
+export const normalize = (text: string) => text.toLowerCase().replaceAll('\u0451', 'е');
 
 function matcher(filter: Filter): (item: TreeItem) => boolean {
   const words = normalize(filter.q).split(/\s+/).filter(Boolean);

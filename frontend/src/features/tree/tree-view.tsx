@@ -104,6 +104,8 @@ export function TreeView(props: Props) {
       f2: () => actions.startEdit(item, 'title'),
       n: () => actions.startAdd(item, 'task'),
       'shift+n': () => actions.startAdd(item, 'milestone'),
+      o: () => actions.openPlace(item, 'vscode'),
+      'shift+o': () => actions.openPlace(item, 'note'),
       delete: () => item.entity !== 'project' && actions.remove(item),
     };
 

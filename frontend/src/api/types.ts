@@ -16,6 +16,7 @@ export type TaskOut = Schemas['TaskOut'];
 export type Signals = Schemas['SignalsOut'];
 export type Focus = Schemas['FocusOut'];
 export type OrbitEvent = Schemas['EventOut'];
+export type WorkSession = Schemas['SessionOut'];
 export type Meta = Schemas['MetaOut'];
 export type ProjectPatch = Schemas['ProjectPatch'];
 export type MilestonePatch = Schemas['MilestonePatch'];

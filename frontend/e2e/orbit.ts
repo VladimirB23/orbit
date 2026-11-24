@@ -31,13 +31,13 @@ export function freePort(): Promise<number> {
   });
 }
 
-export async function serve(db: string, port: number): Promise<ChildProcess> {
+export async function serve(db: string, port: number, vault: string): Promise<ChildProcess> {
   const child = spawn(
     python,
     ['-m', 'orbit', '--db', db, 'serve', '--no-open', '--port', String(port)],
-    { cwd: backend, env, stdio: 'ignore' },
+    { cwd: backend, env: { ...env, ORBIT_VAULT: vault }, stdio: 'ignore' },
   );
-  for (let i = 0; i < 100; i += 1) {
+  for (let i = 0; i < 200; i += 1) {
     try {
       if ((await fetch(`http://127.0.0.1:${port}/api/v1/meta`)).ok) return child;
     } catch {}

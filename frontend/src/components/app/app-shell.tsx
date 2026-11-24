@@ -1,7 +1,7 @@
 /** Frame around every screen: header, notifications, global shortcuts. */
 import { Outlet } from '@tanstack/react-router';
-import { Keyboard, Monitor, Moon, Plus, Sun } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Keyboard, Monitor, Moon, Plus, Search, Sun } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { type LiveState, useLiveUpdates } from '@/api/live';
 import { useMeta } from '@/api/queries';
@@ -13,25 +13,33 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { hotkey } from '@/lib/hotkeys';
+import { Palette } from '@/features/palette/palette';
+import { emitNewProject } from '@/lib/app-events';
+import { hotkey, isPaletteKey } from '@/lib/hotkeys';
 import { type Theme, useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { ShortcutsDialog } from './shortcuts-dialog';
-
-const newProject = () => window.dispatchEvent(new Event('orbit:new-project'));
 
 export function AppShell() {
   const live = useLiveUpdates();
   const { data: meta } = useMeta();
   const [theme, setTheme, resolved] = useTheme();
   const [help, setHelp] = useState(false);
+  const [palette, setPalette] = useState(false);
+  const openHelp = useCallback(() => setHelp(true), []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isPaletteKey(event)) {
+        event.preventDefault(); // the browser would go to its address bar
+        // Over another dialog it would hide an unanswered question.
+        if (!document.querySelector('[role="dialog"],[role="alertdialog"]')) setPalette(true);
+        return;
+      }
       const run: Record<string, () => void> = {
         '/': () => document.getElementById('search')?.focus(),
         '?': () => setHelp(true),
-        p: newProject,
+        p: emitNewProject,
       };
       const action = run[hotkey(event) ?? ''];
       if (!action) return;
@@ -58,6 +66,18 @@ export function AppShell() {
           <LiveMark state={live} />
           <Button
             variant="ghost"
+            size="sm"
+            className="font-normal text-muted-foreground"
+            title="Найти или открыть (Ctrl+K)"
+            onClick={() => setPalette(true)}
+          >
+            <Search /> <span className="max-sm:sr-only">Найти</span>
+            <kbd className="rounded border border-border px-1.5 font-sans text-xs leading-5 max-md:hidden">
+              Ctrl K
+            </kbd>
+          </Button>
+          <Button
+            variant="ghost"
             size="icon"
             className="max-sm:hidden"
             aria-label="Горячие клавиши"
@@ -67,7 +87,7 @@ export function AppShell() {
             <Keyboard />
           </Button>
           <ThemeMenu theme={theme} onChange={setTheme} />
-          <Button size="sm" className="ml-2 h-8" title="Новый проект (P)" onClick={newProject}>
+          <Button size="sm" className="ml-2 h-8" title="Новый проект (P)" onClick={emitNewProject}>
             <Plus /> <span className="max-sm:sr-only">Новый проект</span>
           </Button>
         </div>
@@ -79,6 +99,7 @@ export function AppShell() {
         </p>
       )}
       <Outlet />
+      <Palette open={palette} onOpenChange={setPalette} onHelp={openHelp} />
       <ShortcutsDialog open={help} onOpenChange={setHelp} />
       <Toaster
         theme={resolved}

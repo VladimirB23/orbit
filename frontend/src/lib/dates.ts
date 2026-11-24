@@ -26,7 +26,7 @@ export function formatDay(day: Day, today: Day): string {
   return day.slice(0, 4) === today.slice(0, 4) ? dayMonth(toDate(day)) : formatDate(day);
 }
 
-function plural(n: number, one: string, few: string, many: string): string {
+export function plural(n: number, one: string, few: string, many: string): string {
   const tens = n % 100;
   const units = n % 10;
   if (tens >= 11 && tens <= 14) return many;
@@ -51,4 +51,12 @@ export function relativeTime(at: string, now: Date = new Date()): string {
   if (minutes < 60) return `${minutes} мин назад`;
   if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} ч назад`;
   return `${dayMonth(date)}, ${format(date, 'HH:mm')}`;
+}
+
+/** When a session happened, in local time. */
+export function period(from: string, to: string): string {
+  const start = parseISO(from);
+  const end = parseISO(to);
+  if (toDay(start) !== toDay(end)) return `${dayMonth(start)} – ${dayMonth(end)}`;
+  return `${dayMonth(start)}, ${format(start, 'HH:mm')}–${format(end, 'HH:mm')}`;
 }

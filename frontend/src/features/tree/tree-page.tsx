@@ -1,11 +1,15 @@
 /** The main screen: summary, tree and the side panel. */
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { useMeta, useTree } from '@/api/queries';
 import { Button } from '@/components/ui/button';
 import { ItemPanel, useEscape } from '@/features/item/item-panel';
+import { places } from '@/features/item/places';
 import { useEdit } from '@/features/item/use-edit';
 import { NewProjectDialog } from '@/features/project/new-project-dialog';
+import { useAppEvents } from '@/lib/app-events';
+import { openExternal } from '@/lib/external';
 import { asBoolean, asStrings, usePersisted } from '@/lib/persisted';
 import { isClosed } from '@/lib/status';
 import {
@@ -21,7 +25,7 @@ import {
   visibleRows,
 } from '@/lib/tree';
 import type { TreeSearch } from '@/router';
-import { focusRow } from './focus';
+import { focusRow, focusRowSoon } from './focus';
 import { FilterMenu, SearchField, SummaryBar } from './toolbar';
 import { type TreeUi, TreeView } from './tree-view';
 import type { RowActions } from './types';
@@ -186,14 +190,27 @@ export function TreePage() {
         requestAnimationFrame(() => focusRow(neighbor));
       }
     },
+    openPlace: (item, place) => {
+      const owner = items?.find((project) => project.slug === item.slug);
+      const url = places(owner?.project, meta.data?.vault ?? null)[place];
+      if (url) return openExternal(url);
+      toast(place === 'vscode' ? 'У проекта не указана папка' : 'У проекта не указана заметка');
+    },
     setArchived: (item, value) => void edit.setArchived(item, value),
   };
 
-  useEffect(() => {
-    const onNew = () => setCreating(true);
-    window.addEventListener('orbit:new-project', onNew);
-    return () => window.removeEventListener('orbit:new-project', onNew);
-  }, []);
+  useAppEvents({
+    newProject: () => setCreating(true),
+    reveal: (key) => {
+      if (!items || !findItem(items, key)) return;
+      expand(ancestorsOf(items, key));
+      setUi((state) => ({ ...state, active: key }));
+      // Filters could hide the row; Back returns them.
+      const clear = { q: undefined, view: undefined, status: undefined, project: undefined };
+      setSearch({ ...clear, item: key }, key === selected);
+      focusRowSoon(key);
+    },
+  });
 
   // --- screen ----------------------------------------------------------------
 
@@ -256,6 +273,7 @@ export function TreePage() {
       {selectedItem && project && (
         <ItemPanel
           item={selectedItem}
+          project={project.project}
           path={ancestorsOf(items, selectedItem.key).flatMap((key) => findItem(items, key) ?? [])}
           milestones={project.children.filter((child) => child.entity === 'milestone')}
           today={tree.data.today}

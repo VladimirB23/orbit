@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hotkey } from './hotkeys';
+import { hotkey, isPaletteKey } from './hotkeys';
 
 const press = (init: KeyboardEventInit, target: HTMLElement = document.body) => {
   const event = new KeyboardEvent('keydown', { bubbles: true, ...init });
@@ -36,5 +36,21 @@ describe('hotkey', () => {
     const menu = document.body.appendChild(document.createElement('div'));
     menu.setAttribute('role', 'menu');
     expect(press({ code: 'KeyS' }, menu.appendChild(document.createElement('div')))).toBeNull();
+  });
+});
+
+describe('isPaletteKey', () => {
+  const key = (init: KeyboardEventInit) => isPaletteKey(new KeyboardEvent('keydown', init));
+
+  it('is Ctrl+K in any layout', () => {
+    expect(key({ code: 'KeyK', key: 'л', ctrlKey: true })).toBe(true);
+    expect(key({ code: 'KeyK', key: 'k', metaKey: true })).toBe(true);
+  });
+
+  it('is not a plain K and not a longer combination', () => {
+    expect(key({ code: 'KeyK' })).toBe(false);
+    expect(key({ code: 'KeyK', ctrlKey: true, shiftKey: true })).toBe(false);
+    expect(key({ code: 'KeyK', ctrlKey: true, altKey: true })).toBe(false);
+    expect(key({ code: 'KeyJ', ctrlKey: true })).toBe(false);
   });
 });

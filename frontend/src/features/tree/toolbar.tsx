@@ -17,28 +17,24 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { STATUS_LABEL, STATUSES } from '@/lib/status';
+import { STATUS_LABEL, STATUSES, VIEW_LABEL } from '@/lib/status';
 import { type Filter, VIEWS, type View } from '@/lib/tree';
 import { cn } from '@/lib/utils';
 
-const VIEW_STYLE: Record<View, { label: string; dot: string; on: string }> = {
+const VIEW_STYLE: Record<View, { dot: string; on: string }> = {
   in_progress: {
-    label: 'В работе',
     dot: 'bg-sun',
     on: 'border-sun bg-sun-wash text-sun-ink',
   },
   blocked: {
-    label: 'Заблокировано',
     dot: 'bg-blocked',
     on: 'border-blocked bg-blocked-wash text-blocked',
   },
   overdue: {
-    label: 'Просрочено',
     dot: 'bg-danger',
     on: 'border-danger bg-danger-wash text-danger',
   },
   upcoming: {
-    label: 'Ближайшие 7 дней',
     dot: 'bg-planned',
     on: 'border-planned bg-selected text-planned',
   },
@@ -65,7 +61,7 @@ export function SummaryBar({ filter, counts, onFilter }: SummaryProps) {
       <legend className="sr-only">Сводка: нажми, чтобы показать только это</legend>
       {VIEWS.map((view) => {
         const on = filter.view === view;
-        const { label, dot, on: onStyle } = VIEW_STYLE[view];
+        const { dot, on: onStyle } = VIEW_STYLE[view];
         const count = counts[view];
         return (
           <button
@@ -81,7 +77,7 @@ export function SummaryBar({ filter, counts, onFilter }: SummaryProps) {
             )}
           >
             <span className={cn('size-1.5 rounded-full', dot, count === 0 && 'opacity-40')} />
-            {label}
+            {VIEW_LABEL[view]}
             <span className="font-semibold">{count}</span>
           </button>
         );

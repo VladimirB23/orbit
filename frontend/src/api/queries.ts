@@ -22,12 +22,14 @@ export const queryClient = new QueryClient({
 export const keys = {
   tree: ['tree'] as const,
   events: ['events'] as const,
+  sessions: ['sessions'] as const,
   meta: ['meta'] as const,
 };
 
 export function refreshData(qc: QueryClient) {
   void qc.invalidateQueries({ queryKey: keys.tree });
   void qc.invalidateQueries({ queryKey: keys.events });
+  void qc.invalidateQueries({ queryKey: keys.sessions });
 }
 
 // --- reading -----------------------------------------------------------------
@@ -54,6 +56,13 @@ export function useEvents(entity: Entity, id: number) {
     queryKey: [...keys.events, entity, id],
     queryFn: () =>
       unwrap(client.GET('/api/v1/events', { params: { query: { entity, id, limit: 200 } } })),
+  });
+}
+
+export function useSessions(project: string) {
+  return useQuery({
+    queryKey: [...keys.sessions, project],
+    queryFn: () => unwrap(client.GET('/api/v1/sessions', { params: { query: { project } } })),
   });
 }
 
