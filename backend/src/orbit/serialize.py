@@ -19,6 +19,8 @@ def task_node(node: TaskNode) -> dict[str, Any]:
     return {
         "task": row(node.task),
         "overdue": node.overdue,
+        "upcoming": node.upcoming,
+        "signals": asdict(node.signals),
         "children": [task_node(c) for c in node.children],
     }
 
@@ -28,6 +30,8 @@ def milestone_node(node: MilestoneNode) -> dict[str, Any]:
         "milestone": row(node.milestone),
         "progress": node.progress,
         "overdue": node.overdue,
+        "upcoming": node.upcoming,
+        "signals": asdict(node.signals),
         "tasks": [task_node(t) for t in node.tasks],
     }
 
@@ -37,6 +41,9 @@ def project_node(node: ProjectNode) -> dict[str, Any]:
         "project": row(node.project),
         "progress": node.progress,
         "overdue": node.overdue,
+        "upcoming": node.upcoming,
+        "signals": asdict(node.signals),
+        "focus": asdict(node.focus) if node.focus else None,
         "milestones": [milestone_node(m) for m in node.milestones],
         "tasks": [task_node(t) for t in node.tasks],
     }

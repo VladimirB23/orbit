@@ -1,7 +1,7 @@
 """Pure business rules: no database, no clock, easy to test."""
 
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from orbit.domain.enums import CLOSED_STATUSES, Actor, Priority, Status
 from orbit.domain.errors import ValidationError
@@ -40,6 +40,15 @@ def project_progress(
 
 def is_overdue(due_date: date | None, status: Status, today: date) -> bool:
     return due_date is not None and due_date < today and status not in CLOSED_STATUSES
+
+
+def is_upcoming(due_date: date | None, status: Status, today: date, days: int) -> bool:
+    """Open and due between today and the horizon, both ends included."""
+    return (
+        due_date is not None
+        and today <= due_date <= today + timedelta(days=days)
+        and status not in CLOSED_STATUSES
+    )
 
 
 def next_done_at(

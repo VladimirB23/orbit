@@ -6,9 +6,10 @@ owns the transaction, so one command is all-or-nothing.
 
 import json
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import func, select
@@ -20,6 +21,7 @@ from orbit.domain.enums import CLOSED_STATUSES, Action, Actor, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, ValidationError
 from orbit.domain.rules import (
     is_overdue,
+    is_upcoming,
     milestone_progress,
     next_done_at,
     parse_priority,
@@ -29,6 +31,7 @@ from orbit.domain.rules import (
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SLUG_MAX = 64
+UPCOMING_DAYS = 7
 
 PROJECT_FIELDS = frozenset(
     {
@@ -167,9 +170,43 @@ def snapshot(row: Base) -> dict[str, Any]:
 
 
 @dataclass
+class Signals:
+    """What happens below a row: shown when the row is collapsed."""
+
+    in_progress: int = 0
+    blocked: int = 0
+    overdue: int = 0
+    upcoming: int = 0
+
+    def count(self, status: str, overdue: bool, upcoming: bool, below: "Signals") -> None:
+        """Add one child row together with everything below it."""
+        self.in_progress += (status == Status.IN_PROGRESS) + below.in_progress
+        self.blocked += (status == Status.BLOCKED) + below.blocked
+        self.overdue += overdue + below.overdue
+        self.upcoming += upcoming + below.upcoming
+
+
+class FocusKind(StrEnum):
+    CURRENT = "current"
+    NEXT = "next"
+
+
+@dataclass
+class Focus:
+    """Where the project stands right now, or what comes next."""
+
+    entity: Entity
+    id: int
+    title: str
+    kind: FocusKind
+
+
+@dataclass
 class TaskNode:
     task: Task
     overdue: bool
+    upcoming: bool
+    signals: Signals = field(default_factory=Signals)
     children: list["TaskNode"] = field(default_factory=list)
 
 
@@ -178,6 +215,8 @@ class MilestoneNode:
     milestone: Milestone
     progress: float
     overdue: bool
+    upcoming: bool
+    signals: Signals = field(default_factory=Signals)
     tasks: list[TaskNode] = field(default_factory=list)
 
 
@@ -186,8 +225,34 @@ class ProjectNode:
     project: Project
     progress: float
     overdue: bool
+    upcoming: bool
+    focus: Focus | None
+    signals: Signals = field(default_factory=Signals)
     milestones: list[MilestoneNode] = field(default_factory=list)
     tasks: list[TaskNode] = field(default_factory=list)  # tasks without a milestone
+
+
+def _task_signals(nodes: Iterable[TaskNode]) -> Signals:
+    """Bottom-up totals for a list of sibling tasks; fills the nodes on the way."""
+    total = Signals()
+    for node in nodes:
+        node.signals = _task_signals(node.children)
+        total.count(node.task.status, node.overdue, node.upcoming, node.signals)
+    return total
+
+
+def _focus(milestones: Sequence[Milestone], tasks: Sequence[Task]) -> Focus | None:
+    """Milestone in progress, else task in progress, else the next open milestone."""
+    for m in milestones:
+        if m.status == Status.IN_PROGRESS:
+            return Focus(Entity.MILESTONE, m.id, m.name, FocusKind.CURRENT)
+    for t in tasks:
+        if t.status == Status.IN_PROGRESS:
+            return Focus(Entity.TASK, t.id, t.title, FocusKind.CURRENT)
+    for m in milestones:
+        if Status(m.status) not in CLOSED_STATUSES:
+            return Focus(Entity.MILESTONE, m.id, m.name, FocusKind.NEXT)
+    return None
 
 
 @dataclass
@@ -631,9 +696,14 @@ class Orbit:
         )
         today = self.clock.today()
 
-        task_nodes = {
-            t.id: TaskNode(t, is_overdue(t.due_date, Status(t.status), today)) for t in tasks
-        }
+        def flags(row: Project | Milestone | Task) -> tuple[bool, bool]:
+            status = Status(row.status)
+            return (
+                is_overdue(row.due_date, status, today),
+                is_upcoming(row.due_date, status, today, UPCOMING_DAYS),
+            )
+
+        task_nodes = {t.id: TaskNode(t, *flags(t)) for t in tasks}
         for t in tasks:
             if t.parent_id is not None and t.parent_id in task_nodes:
                 task_nodes[t.parent_id].children.append(task_nodes[t.id])
@@ -641,19 +711,19 @@ class Orbit:
         result: list[ProjectNode] = []
         for p in projects:
             p_tasks = [t for t in tasks if t.project_id == p.id]
+            p_milestones = [m for m in milestones if m.project_id == p.id]
+            roots = [t for t in p_tasks if t.parent_id is None]
             m_nodes: list[MilestoneNode] = []
-            for m in (m for m in milestones if m.project_id == p.id):
+            for m in p_milestones:
                 m_statuses = [Status(t.status) for t in p_tasks if t.milestone_id == m.id]
+                children = [task_nodes[t.id] for t in roots if t.milestone_id == m.id]
                 m_nodes.append(
                     MilestoneNode(
                         m,
                         milestone_progress(Status(m.status), m_statuses),
-                        is_overdue(m.due_date, Status(m.status), today),
-                        [
-                            task_nodes[t.id]
-                            for t in p_tasks
-                            if t.parent_id is None and t.milestone_id == m.id
-                        ],
+                        *flags(m),
+                        signals=_task_signals(children),
+                        tasks=children,
                     )
                 )
             progress = project_progress(
@@ -661,26 +731,27 @@ class Orbit:
                 [(Status(n.milestone.status), n.progress) for n in m_nodes],
                 [Status(t.status) for t in p_tasks],
             )
+            loose = [task_nodes[t.id] for t in roots if t.milestone_id is None]
+            signals = _task_signals(loose)
+            for n in m_nodes:
+                signals.count(n.milestone.status, n.overdue, n.upcoming, n.signals)
             result.append(
                 ProjectNode(
                     p,
                     progress,
-                    is_overdue(p.due_date, Status(p.status), today),
-                    m_nodes,
-                    [
-                        task_nodes[t.id]
-                        for t in p_tasks
-                        if t.parent_id is None and t.milestone_id is None
-                    ],
+                    *flags(p),
+                    focus=_focus(p_milestones, p_tasks),
+                    signals=signals,
+                    milestones=m_nodes,
+                    tasks=loose,
                 )
             )
         return result
 
     # --- status report --------------------------------------------------------
 
-    def status_report(self, days: int = 7) -> StatusReport:
+    def status_report(self, days: int = UPCOMING_DAYS) -> StatusReport:
         today = self.clock.today()
-        horizon = today + timedelta(days=days)
         projects = {p.id: p for p in self.list_projects()}
         ids = list(projects)
 
@@ -707,9 +778,6 @@ class Orbit:
                 ReportItem("task", t.id, projects[t.project_id].slug, t.title, t.status, t.due_date)
             )
 
-        def open_item(i: ReportItem) -> bool:
-            return Status(i.status) not in CLOSED_STATUSES
-
         def by_due(i: ReportItem) -> date:
             assert i.due_date is not None
             return i.due_date
@@ -722,11 +790,7 @@ class Orbit:
                 (i for i in items if is_overdue(i.due_date, Status(i.status), today)), key=by_due
             ),
             upcoming=sorted(
-                (
-                    i
-                    for i in items
-                    if open_item(i) and i.due_date is not None and today <= i.due_date <= horizon
-                ),
+                (i for i in items if is_upcoming(i.due_date, Status(i.status), today, days)),
                 key=by_due,
             ),
         )
