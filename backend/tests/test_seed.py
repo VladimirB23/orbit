@@ -53,6 +53,20 @@ def test_demo_projects_have_folders_notes_and_sessions(session: Session, clock: 
     assert any(p.repo_path is None for p in orbit.list_projects())
 
 
+def test_demo_shows_every_kind_of_bar_on_the_timeline(session: Session, clock: FakeClock) -> None:
+    """Planned ahead, running, closed early and late, only a deadline, no dates at all."""
+    seed_demo(session, today=TODAY)
+    projects = Orbit(session, actor=Actor.SYSTEM, clock=clock).tree()
+    nodes = [m for p in projects for m in p.milestones]
+    rows = [(m.milestone, m.actual) for m in nodes]
+    assert any(r.start_date and r.start_date > TODAY for r, _ in rows)
+    assert any(a.start and not a.end for _, a in rows)
+    assert any(a.end and r.due_date and a.end < r.due_date for r, a in rows)
+    assert any(a.end and r.due_date and a.end > r.due_date for r, a in rows)
+    assert any(r.due_date and not r.start_date and not a.start for r, a in rows)
+    assert any(not p.milestones and not p.project.due_date and not p.actual.start for p in projects)
+
+
 # --- CLI ----------------------------------------------------------------------
 
 

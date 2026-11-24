@@ -37,6 +37,9 @@ class _ReplayClock:
     def today(self) -> date:
         return self.base
 
+    def day_of(self, moment: datetime) -> date:
+        return moment.astimezone().date()
+
 
 def seed_demo(session: Session, today: date) -> dict[str, int]:
     clock = _ReplayClock(today)
@@ -63,7 +66,9 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
     m_collect = claude.add_milestone("coffee-dashboard", "Data collection", due_date=d(-20))
     m_clean = claude.add_milestone("coffee-dashboard", "Data cleaning", due_date=d(-16))
     m_kpi = claude.add_milestone("coffee-dashboard", "KPI design", due_date=d(3))
-    m_dash = claude.add_milestone("coffee-dashboard", "Tableau dashboard", due_date=d(10))
+    m_dash = claude.add_milestone(
+        "coffee-dashboard", "Tableau dashboard", start_date=d(4), due_date=d(10)
+    )
     gen = claude.add_task("coffee-dashboard", "Generate sales dataset", milestone_id=m_collect.id)
     load = claude.add_task("coffee-dashboard", "Load CSV into SQLite", milestone_id=m_collect.id)
 
@@ -102,12 +107,20 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
     vlad.update_task(kpis.id, status=S.DONE, comment="8 KPIs, agreed with the 'owner'")
     clock.at(9)
     claude.update_task(rph.id, status=S.IN_PROGRESS, due_date=d(2))
+    clock.at(8)
+    claude.update_task(churn.id, status=S.IN_PROGRESS)
     clock.at(5, 14)
     claude.update_task(churn.id, status=S.BLOCKED, comment="Waiting for the loyalty table export")
 
     clock.at(4)
     vlad.add_task("coffee-dashboard", "Sketch layout", milestone_id=m_dash.id, priority=2)
-    vlad.add_task("coffee-dashboard", "Build sheets", milestone_id=m_dash.id)
+    vlad.add_task(
+        "coffee-dashboard",
+        "Build sheets",
+        milestone_id=m_dash.id,
+        start_date=d(5),
+        due_date=d(9),
+    )
     vlad.add_task(
         "coffee-dashboard",
         "Publish to Tableau Public",

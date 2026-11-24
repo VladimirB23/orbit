@@ -30,6 +30,9 @@ export interface TreeItem {
   priority: number | null;
   startDate: string | null;
   dueDate: string | null;
+  /** When work really began and ended, by the journal. */
+  actualStart: string | null;
+  actualEnd: string | null;
   /** Tasks have no progress. */
   progress: number | null;
   overdue: boolean;
@@ -63,6 +66,8 @@ function fromTask(node: TaskNode, slug: string): TreeItem {
     priority: task.priority,
     startDate: task.start_date,
     dueDate: task.due_date,
+    actualStart: node.actual.start,
+    actualEnd: node.actual.end,
     progress: null,
     overdue: node.overdue,
     upcoming: node.upcoming,
@@ -91,6 +96,8 @@ function fromMilestone(node: MilestoneNode, slug: string): TreeItem {
     priority: null,
     startDate: milestone.start_date,
     dueDate: milestone.due_date,
+    actualStart: node.actual.start,
+    actualEnd: node.actual.end,
     progress: node.progress,
     overdue: node.overdue,
     upcoming: node.upcoming,
@@ -119,6 +126,8 @@ function fromProject(node: ProjectNode): TreeItem {
     priority: project.priority,
     startDate: project.start_date,
     dueDate: project.due_date,
+    actualStart: node.actual.start,
+    actualEnd: node.actual.end,
     progress: node.progress,
     overdue: node.overdue,
     upcoming: node.upcoming,

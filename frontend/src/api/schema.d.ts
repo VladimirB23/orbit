@@ -250,6 +250,16 @@ export interface components {
          * @enum {string}
          */
         Actor: "vladimir" | "claude" | "system";
+        /**
+         * ActualOut
+         * @description Dates from the journal, not from the plan.
+         */
+        ActualOut: {
+            /** Start */
+            start: string | null;
+            /** End */
+            end: string | null;
+        };
         /** DatabaseOut */
         DatabaseOut: {
             /** Name */
@@ -352,6 +362,7 @@ export interface components {
             overdue: boolean;
             /** Upcoming */
             upcoming: boolean;
+            actual: components["schemas"]["ActualOut"];
             signals: components["schemas"]["SignalsOut"];
             /** Tasks */
             tasks: components["schemas"]["TaskNodeOut"][];
@@ -435,6 +446,7 @@ export interface components {
             overdue: boolean;
             /** Upcoming */
             upcoming: boolean;
+            actual: components["schemas"]["ActualOut"];
             focus: components["schemas"]["FocusOut"] | null;
             signals: components["schemas"]["SignalsOut"];
             /** Milestones */
@@ -580,6 +592,7 @@ export interface components {
             overdue: boolean;
             /** Upcoming */
             upcoming: boolean;
+            actual: components["schemas"]["ActualOut"];
             signals: components["schemas"]["SignalsOut"];
             /** Children */
             children: components["schemas"]["TaskNodeOut"][];

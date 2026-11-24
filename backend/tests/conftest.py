@@ -20,12 +20,16 @@ class FakeClock:
     """Test clock: time moves only when a test says so."""
 
     current: datetime = NOW
+    offset: timedelta = timedelta(0)  # of the local time zone
 
     def now(self) -> datetime:
         return self.current
 
     def today(self) -> date:
-        return self.current.date()
+        return self.day_of(self.current)
+
+    def day_of(self, moment: datetime) -> date:
+        return (moment + self.offset).date()
 
     def advance(self, **kwargs: float) -> None:
         self.current += timedelta(**kwargs)

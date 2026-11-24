@@ -14,6 +14,7 @@ export type ProjectOut = Schemas['ProjectOut'];
 export type MilestoneOut = Schemas['MilestoneOut'];
 export type TaskOut = Schemas['TaskOut'];
 export type Signals = Schemas['SignalsOut'];
+export type Actual = Schemas['ActualOut'];
 export type Focus = Schemas['FocusOut'];
 export type OrbitEvent = Schemas['EventOut'];
 export type WorkSession = Schemas['SessionOut'];

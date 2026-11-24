@@ -1,6 +1,7 @@
 """Pure business rules: no database, no clock, easy to test."""
 
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from orbit.domain.enums import CLOSED_STATUSES, Actor, Priority, Status
@@ -49,6 +50,42 @@ def is_upcoming(due_date: date | None, status: Status, today: date, days: int) -
         and today <= due_date <= today + timedelta(days=days)
         and status not in CLOSED_STATUSES
     )
+
+
+@dataclass(frozen=True)
+class Actual:
+    """When work really began and ended; None while unknown or not yet."""
+
+    start: date | None
+    end: date | None
+
+
+def actual_span(history: Sequence[tuple[Status, date]], status: Status) -> Actual:
+    """From the statuses a row has entered, oldest first.
+
+    The beginning is the first day in progress. A row closed without it has only an end:
+    the day it was created says nothing about work.
+    """
+    start = next((day for entered, day in history if entered is Status.IN_PROGRESS), None)
+    end = None
+    if status in CLOSED_STATUSES:
+        end = next((day for entered, day in reversed(history) if entered is status), None)
+    return Actual(start, end)
+
+
+def earliest_sign(actual: Actual, status: Status) -> date | None:
+    """The first day that proves work on a row: for the rows above it."""
+    if actual.start is not None:
+        return actual.start
+    return actual.end if status is Status.DONE else None
+
+
+def with_children(own: Actual, signs: Iterable[date | None]) -> Actual:
+    """A row began when anything inside it began, but not after it was closed."""
+    days = [day for day in signs if day is not None and (own.end is None or day <= own.end)]
+    if own.start is not None:
+        days.append(own.start)
+    return Actual(min(days, default=None), own.end)
 
 
 def next_done_at(

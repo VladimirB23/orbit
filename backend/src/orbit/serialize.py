@@ -4,6 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from orbit.db.models import Event, Milestone, Project, Task, WorkSession
+from orbit.domain.rules import Actual
 from orbit.domain.service import MilestoneNode, ProjectNode, StatusReport, TaskNode, snapshot
 
 
@@ -15,11 +16,19 @@ def event(e: Event) -> dict[str, Any]:
     return snapshot(e)
 
 
+def actual(a: Actual) -> dict[str, Any]:
+    return {
+        "start": a.start.isoformat() if a.start else None,
+        "end": a.end.isoformat() if a.end else None,
+    }
+
+
 def task_node(node: TaskNode) -> dict[str, Any]:
     return {
         "task": row(node.task),
         "overdue": node.overdue,
         "upcoming": node.upcoming,
+        "actual": actual(node.actual),
         "signals": asdict(node.signals),
         "children": [task_node(c) for c in node.children],
     }
@@ -31,6 +40,7 @@ def milestone_node(node: MilestoneNode) -> dict[str, Any]:
         "progress": node.progress,
         "overdue": node.overdue,
         "upcoming": node.upcoming,
+        "actual": actual(node.actual),
         "signals": asdict(node.signals),
         "tasks": [task_node(t) for t in node.tasks],
     }
@@ -42,6 +52,7 @@ def project_node(node: ProjectNode) -> dict[str, Any]:
         "progress": node.progress,
         "overdue": node.overdue,
         "upcoming": node.upcoming,
+        "actual": actual(node.actual),
         "signals": asdict(node.signals),
         "focus": asdict(node.focus) if node.focus else None,
         "milestones": [milestone_node(m) for m in node.milestones],

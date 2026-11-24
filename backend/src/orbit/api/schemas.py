@@ -72,6 +72,13 @@ class SignalsOut(Out):
     upcoming: int
 
 
+class ActualOut(Out):
+    """Dates from the journal, not from the plan."""
+
+    start: date | None
+    end: date | None
+
+
 class FocusOut(Out):
     entity: Entity
     id: int
@@ -83,6 +90,7 @@ class TaskNodeOut(Out):
     task: TaskOut
     overdue: bool
     upcoming: bool
+    actual: ActualOut
     signals: SignalsOut
     children: list["TaskNodeOut"]
 
@@ -92,6 +100,7 @@ class MilestoneNodeOut(Out):
     progress: float
     overdue: bool
     upcoming: bool
+    actual: ActualOut
     signals: SignalsOut
     tasks: list[TaskNodeOut]
 
@@ -101,6 +110,7 @@ class ProjectNodeOut(Out):
     progress: float
     overdue: bool
     upcoming: bool
+    actual: ActualOut
     focus: FocusOut | None
     signals: SignalsOut
     milestones: list[MilestoneNodeOut]

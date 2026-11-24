@@ -1311,6 +1311,41 @@
         ],
         "title": "Actor"
       },
+      "ActualOut": {
+        "properties": {
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "ActualOut",
+        "description": "Dates from the journal, not from the plan."
+      },
       "DatabaseOut": {
         "properties": {
           "name": {
@@ -1610,6 +1645,9 @@
             "type": "boolean",
             "title": "Upcoming"
           },
+          "actual": {
+            "$ref": "#/components/schemas/ActualOut"
+          },
           "signals": {
             "$ref": "#/components/schemas/SignalsOut"
           },
@@ -1627,6 +1665,7 @@
           "progress",
           "overdue",
           "upcoming",
+          "actual",
           "signals",
           "tasks"
         ],
@@ -1914,6 +1953,9 @@
             "type": "boolean",
             "title": "Upcoming"
           },
+          "actual": {
+            "$ref": "#/components/schemas/ActualOut"
+          },
           "focus": {
             "anyOf": [
               {
@@ -1948,6 +1990,7 @@
           "progress",
           "overdue",
           "upcoming",
+          "actual",
           "focus",
           "signals",
           "milestones",
@@ -2434,6 +2477,9 @@
             "type": "boolean",
             "title": "Upcoming"
           },
+          "actual": {
+            "$ref": "#/components/schemas/ActualOut"
+          },
           "signals": {
             "$ref": "#/components/schemas/SignalsOut"
           },
@@ -2450,6 +2496,7 @@
           "task",
           "overdue",
           "upcoming",
+          "actual",
           "signals",
           "children"
         ],

@@ -12,7 +12,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from orbit.db.models import (
@@ -30,6 +30,9 @@ from orbit.domain.clock import Clock, SystemClock
 from orbit.domain.enums import CLOSED_STATUSES, Action, Actor, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, ValidationError
 from orbit.domain.rules import (
+    Actual,
+    actual_span,
+    earliest_sign,
     is_overdue,
     is_upcoming,
     milestone_progress,
@@ -37,6 +40,7 @@ from orbit.domain.rules import (
     parse_priority,
     parse_status,
     project_progress,
+    with_children,
 )
 from orbit.domain.sessions import SessionImport, SessionRecord
 
@@ -219,6 +223,7 @@ class TaskNode:
     task: Task
     overdue: bool
     upcoming: bool
+    actual: Actual
     signals: Signals = field(default_factory=Signals)
     children: list["TaskNode"] = field(default_factory=list)
 
@@ -229,6 +234,7 @@ class MilestoneNode:
     progress: float
     overdue: bool
     upcoming: bool
+    actual: Actual
     signals: Signals = field(default_factory=Signals)
     tasks: list[TaskNode] = field(default_factory=list)
 
@@ -239,6 +245,7 @@ class ProjectNode:
     progress: float
     overdue: bool
     upcoming: bool
+    actual: Actual
     focus: Focus | None
     signals: Signals = field(default_factory=Signals)
     milestones: list[MilestoneNode] = field(default_factory=list)
@@ -252,6 +259,15 @@ def _task_signals(nodes: Iterable[TaskNode]) -> Signals:
         node.signals = _task_signals(node.children)
         total.count(node.task.status, node.overdue, node.upcoming, node.signals)
     return total
+
+
+def _task_actuals(nodes: Iterable[TaskNode]) -> list[date | None]:
+    """Subtasks count for the tasks above them; returns signs of work for the row above."""
+    signs: list[date | None] = []
+    for node in nodes:
+        node.actual = with_children(node.actual, _task_actuals(node.children))
+        signs.append(earliest_sign(node.actual, Status(node.task.status)))
+    return signs
 
 
 def _focus(milestones: Sequence[Milestone], tasks: Sequence[Task]) -> Focus | None:
@@ -339,6 +355,28 @@ class Orbit:
         return list(self.session.scalars(query))[::-1]
 
     # --- generic create / update / delete -------------------------------------
+
+    def _status_history(self) -> dict[tuple[str, int], list[tuple[Status, date]]]:
+        """Statuses every row has entered, oldest first.
+
+        SQLite reuses ids of deleted rows, so a row's history starts at its own creation.
+        """
+        created = Event.action == Action.CREATE.value
+        entered = case(
+            (created, func.json_extract(Event.new_value, "$.status")), else_=Event.new_value
+        )
+        rows = self.session.execute(
+            select(Event.entity, Event.entity_id, Event.action, Event.at, entered)
+            .where(or_(created, Event.field == "status"))
+            .order_by(Event.id)
+        )
+        history: dict[tuple[str, int], list[tuple[Status, date]]] = {}
+        for entity, entity_id, action, at, status in rows:
+            key = (entity, entity_id)
+            if action == Action.CREATE.value:
+                history[key] = []
+            history.setdefault(key, []).append((Status(status), self.clock.day_of(at)))
+        return history
 
     def _next_position(self, model: type[Project | Milestone | Task], *where: Any) -> int:
         current = self.session.scalar(select(func.max(model.position)).where(*where))
@@ -710,14 +748,17 @@ class Orbit:
         )
         today = self.clock.today()
 
-        def flags(row: Project | Milestone | Task) -> tuple[bool, bool]:
+        history = self._status_history()
+
+        def flags(entity: Entity, row: Project | Milestone | Task) -> tuple[bool, bool, Actual]:
             status = Status(row.status)
             return (
                 is_overdue(row.due_date, status, today),
                 is_upcoming(row.due_date, status, today, UPCOMING_DAYS),
+                actual_span(history.get((entity.value, row.id), []), status),
             )
 
-        task_nodes = {t.id: TaskNode(t, *flags(t)) for t in tasks}
+        task_nodes = {t.id: TaskNode(t, *flags(Entity.TASK, t)) for t in tasks}
         for t in tasks:
             if t.parent_id is not None and t.parent_id in task_nodes:
                 task_nodes[t.parent_id].children.append(task_nodes[t.id])
@@ -731,15 +772,15 @@ class Orbit:
             for m in p_milestones:
                 m_statuses = [Status(t.status) for t in p_tasks if t.milestone_id == m.id]
                 children = [task_nodes[t.id] for t in roots if t.milestone_id == m.id]
-                m_nodes.append(
-                    MilestoneNode(
-                        m,
-                        milestone_progress(Status(m.status), m_statuses),
-                        *flags(m),
-                        signals=_task_signals(children),
-                        tasks=children,
-                    )
+                node = MilestoneNode(
+                    m,
+                    milestone_progress(Status(m.status), m_statuses),
+                    *flags(Entity.MILESTONE, m),
+                    signals=_task_signals(children),
+                    tasks=children,
                 )
+                node.actual = with_children(node.actual, _task_actuals(children))
+                m_nodes.append(node)
             progress = project_progress(
                 Status(p.status),
                 [(Status(n.milestone.status), n.progress) for n in m_nodes],
@@ -749,17 +790,18 @@ class Orbit:
             signals = _task_signals(loose)
             for n in m_nodes:
                 signals.count(n.milestone.status, n.overdue, n.upcoming, n.signals)
-            result.append(
-                ProjectNode(
-                    p,
-                    progress,
-                    *flags(p),
-                    focus=_focus(p_milestones, p_tasks),
-                    signals=signals,
-                    milestones=m_nodes,
-                    tasks=loose,
-                )
+            project = ProjectNode(
+                p,
+                progress,
+                *flags(Entity.PROJECT, p),
+                focus=_focus(p_milestones, p_tasks),
+                signals=signals,
+                milestones=m_nodes,
+                tasks=loose,
             )
+            signs = [earliest_sign(n.actual, Status(n.milestone.status)) for n in m_nodes]
+            project.actual = with_children(project.actual, signs + _task_actuals(loose))
+            result.append(project)
         return result
 
     # --- sessions -------------------------------------------------------------

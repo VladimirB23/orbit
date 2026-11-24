@@ -68,6 +68,7 @@ def test_tree_returns_nested_projects_with_flags(client: TestClient) -> None:
         "kind": "current",
     }
     assert node["signals"] == {"in_progress": 1, "blocked": 0, "overdue": 0, "upcoming": 1}
+    assert node["milestones"][0]["actual"] == {"start": TODAY.isoformat(), "end": None}
     [milestone] = node["milestones"]
     assert milestone["upcoming"] is True
     [task] = milestone["tasks"]

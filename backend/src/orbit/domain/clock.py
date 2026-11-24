@@ -13,6 +13,10 @@ class Clock(Protocol):
         """Local calendar date: deadlines are local days."""
         ...
 
+    def day_of(self, moment: datetime) -> date:
+        """Local calendar date of a past moment."""
+        ...
+
 
 class SystemClock:
     def now(self) -> datetime:
@@ -20,3 +24,6 @@ class SystemClock:
 
     def today(self) -> date:
         return date.today()
+
+    def day_of(self, moment: datetime) -> date:
+        return moment.astimezone().date()

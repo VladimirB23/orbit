@@ -3,7 +3,7 @@ import { differenceInCalendarDays, format, parseISO, addDays as shift } from 'da
 
 export type Day = string;
 
-const MONTHS = 'янв фев мар апр мая июн июл авг сен окт ноя дек'.split(' ');
+export const MONTHS = 'янв фев мар апр мая июн июл авг сен окт ноя дек'.split(' ');
 
 export const toDate = (day: Day): Date => parseISO(day);
 export const toDay = (date: Date): Day => format(date, 'yyyy-MM-dd');

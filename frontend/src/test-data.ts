@@ -1,5 +1,6 @@
 /** Builders for tests: only what a test cares about is spelled out. */
 import type {
+  Actual,
   MilestoneNode,
   MilestoneOut,
   ProjectNode,
@@ -14,7 +15,9 @@ const AT = '2026-11-24T10:00:00Z';
 const SIGNALS: Signals = { in_progress: 0, blocked: 0, overdue: 0, upcoming: 0 };
 const dates = { start_date: null, due_date: null, done_at: null, created_at: AT, updated_at: AT };
 
-type Flags = { overdue?: boolean; upcoming?: boolean };
+const ACTUAL: Actual = { start: null, end: null };
+
+type Flags = { overdue?: boolean; upcoming?: boolean; actual?: Actual };
 
 export function task(
   id: number,
@@ -22,6 +25,7 @@ export function task(
     children = [],
     overdue = false,
     upcoming = false,
+    actual = ACTUAL,
     ...row
   }: Partial<TaskOut> & Flags & { children?: TaskNode[] },
 ): TaskNode {
@@ -42,6 +46,7 @@ export function task(
     },
     overdue,
     upcoming,
+    actual,
     signals: SIGNALS,
     children,
   };
@@ -60,6 +65,7 @@ export function milestone(
     tasks = [],
     overdue = false,
     upcoming = false,
+    actual = ACTUAL,
     ...row
   }: Partial<MilestoneOut> & Flags & { tasks?: TaskNode[] },
 ): MilestoneNode {
@@ -77,6 +83,7 @@ export function milestone(
     },
     overdue,
     upcoming,
+    actual,
     progress: 0,
     signals: SIGNALS,
     tasks,
@@ -90,6 +97,7 @@ export function project(
     tasks = [],
     overdue = false,
     upcoming = false,
+    actual = ACTUAL,
     ...row
   }: Partial<ProjectOut> & Flags & { milestones?: MilestoneNode[]; tasks?: TaskNode[] },
 ): ProjectNode {
@@ -116,6 +124,7 @@ export function project(
     },
     overdue,
     upcoming,
+    actual,
     progress: 0,
     focus: null,
     signals: SIGNALS,
