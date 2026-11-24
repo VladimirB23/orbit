@@ -1,0 +1,217 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/golos-text";
+
+@custom-variant dark (&:is(.dark *));
+
+/* All colors live here. Chart-paper day, observatory night; amber means "lit": work in progress. */
+:root {
+  --background: #fafbfd;
+  --foreground: #17233f;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --raised: #eef2f7;
+  --muted-foreground: #566282;
+  --faint: #586480;
+  --border: #dbe2ec;
+  --line: #e8edf3;
+  --input: #c3cddb;
+  --ring: #2f62c4;
+  --primary: #17233f;
+  --primary-foreground: #ffffff;
+  --accent: #e9eef6;
+  --selected: #e4ecf9;
+  --flash: #fdeecb;
+
+  --sun: #f0a417;
+  --sun-ink: #8a5600;
+  --sun-wash: #fdf1d8;
+  --danger: #c4283a;
+  --danger-wash: #fce9ea;
+  --blocked: #8836a3;
+  --blocked-wash: #f5e8f9;
+  --done: #147a5c;
+  --planned: #2f62c4;
+  --idle: #64708c;
+
+  --radius: 0.5rem;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #111a2e;
+  --foreground: #e7edf8;
+  --card: #17223a;
+  --popover: #1b2742;
+  --raised: #1b2742;
+  --muted-foreground: #a3b1cc;
+  --faint: #a3b0cb;
+  --border: #2b3957;
+  --line: #212d48;
+  --input: #3c4c6f;
+  --ring: #8db4ff;
+  --primary: #f2b441;
+  --primary-foreground: #17233f;
+  --accent: #23304f;
+  --selected: #253659;
+  --flash: #4a3d1c;
+
+  --sun: #f5b83d;
+  --sun-ink: #f7c765;
+  --sun-wash: #3a311c;
+  --danger: #ff8a8f;
+  --danger-wash: #43242f;
+  --blocked: #dc9cf0;
+  --blocked-wash: #3a2748;
+  --done: #5fcfa8;
+  --planned: #8db4ff;
+  --idle: #8c9bb9;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Golos Text Variable", "Segoe UI", system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--foreground);
+  --color-raised: var(--raised);
+  --color-muted: var(--raised);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
+  --color-border: var(--border);
+  --color-line: var(--line);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--raised);
+  --color-secondary-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--danger);
+  --color-selected: var(--selected);
+  --color-sun: var(--sun);
+  --color-sun-ink: var(--sun-ink);
+  --color-sun-wash: var(--sun-wash);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-blocked: var(--blocked);
+  --color-blocked-wash: var(--blocked-wash);
+  --color-done: var(--done);
+  --color-planned: var(--planned);
+  --color-idle: var(--idle);
+
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --animate-flash: flash 2.4s ease-out;
+  @keyframes flash {
+    0%,
+    35% {
+      background-color: var(--flash);
+    }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    font-size: 15px;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  [role="button"],
+  [role="menuitem"] {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    /* biome-ignore lint/complexity/noImportantStyles: the person's setting wins over any style */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: see above */
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The tree reacts to its own width: the side panel narrows it as well as the window does. */
+.tree {
+  container: tree / inline-size;
+}
+.tree-grid {
+  display: grid;
+  grid-template-columns: minmax(22rem, 1.7fr) 8.5rem 6.75rem 6rem 6.75rem minmax(10rem, 1fr) 2.25rem;
+  align-items: center;
+}
+.col-status-glyph {
+  display: none;
+}
+@container tree (max-width: 74rem) {
+  .tree-grid {
+    grid-template-columns: minmax(20rem, 1.8fr) 8.5rem 6.75rem 6.75rem minmax(8rem, 1fr) 2.25rem;
+  }
+  .col-start {
+    display: none;
+  }
+  .chip-word:not(.pulse .chip-word) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+@container tree (max-width: 62rem) {
+  .tree-grid {
+    grid-template-columns: minmax(0, 1fr) 8.5rem 6.5rem 6.25rem 2.25rem;
+  }
+  .col-note {
+    display: none;
+  }
+}
+@container tree (max-width: 42rem) {
+  .tree-grid {
+    grid-template-columns: minmax(0, 1fr) 2rem 5rem 2rem;
+  }
+  .col-progress,
+  .col-status-text {
+    display: none;
+  }
+  .col-status-glyph {
+    display: block;
+  }
+  .pulse .chip-word {
+    position: absolute;
+    clip-path: inset(50%);
+  }
+}
+
+[data-sonner-toaster] {
+  font-family: inherit;
+}
+[data-sonner-toaster] [data-sonner-toast] [data-button] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}

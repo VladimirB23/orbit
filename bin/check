@@ -1,0 +1,13 @@
+#!/bin/sh
+# Every check of the project in one command; stops at the first failure. --fast skips the browser.
+set -e
+root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$root/backend"
+uv run --quiet ruff check .
+uv run --quiet ruff format --check .
+uv run --quiet mypy
+uv run --quiet pytest
+cd "$root/frontend"
+npm run --silent check
+if [ "$1" != "--fast" ]; then npm run --silent e2e; fi
+echo "All checks passed."

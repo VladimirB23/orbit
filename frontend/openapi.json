@@ -1,0 +1,2531 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Orbit",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/meta": {
+      "get": {
+        "summary": "Meta",
+        "operationId": "meta_api_v1_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tree": {
+      "get": {
+        "summary": "Tree",
+        "operationId": "tree_api_v1_tree_get",
+        "parameters": [
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Archived"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreeOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "summary": "Events",
+        "description": "Change journal, newest first.",
+        "operationId": "events_api_v1_events_get",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Entity"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventOut"
+                  },
+                  "title": "Response Events Api V1 Events Get"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/projects": {
+      "post": {
+        "summary": "Create Project",
+        "operationId": "create_project_api_v1_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{slug}": {
+      "patch": {
+        "summary": "Update Project",
+        "operationId": "update_project_api_v1_projects__slug__patch",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Allow closing or deleting with open children.",
+              "default": false,
+              "title": "Force"
+            },
+            "description": "Allow closing or deleting with open children."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{slug}/archive": {
+      "post": {
+        "summary": "Archive Project",
+        "operationId": "archive_project_api_v1_projects__slug__archive_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{slug}/unarchive": {
+      "post": {
+        "summary": "Unarchive Project",
+        "operationId": "unarchive_project_api_v1_projects__slug__unarchive_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{slug}/milestones": {
+      "post": {
+        "summary": "Create Milestone",
+        "operationId": "create_milestone_api_v1_projects__slug__milestones_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MilestoneCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MilestoneOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/milestones/{milestone_id}": {
+      "patch": {
+        "summary": "Update Milestone",
+        "operationId": "update_milestone_api_v1_milestones__milestone_id__patch",
+        "parameters": [
+          {
+            "name": "milestone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Milestone Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Allow closing or deleting with open children.",
+              "default": false,
+              "title": "Force"
+            },
+            "description": "Allow closing or deleting with open children."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MilestonePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MilestoneOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Milestone",
+        "operationId": "delete_milestone_api_v1_milestones__milestone_id__delete",
+        "parameters": [
+          {
+            "name": "milestone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Milestone Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Allow closing or deleting with open children.",
+              "default": false,
+              "title": "Force"
+            },
+            "description": "Allow closing or deleting with open children."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{slug}/tasks": {
+      "post": {
+        "summary": "Create Task",
+        "operationId": "create_task_api_v1_projects__slug__tasks_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}": {
+      "patch": {
+        "summary": "Update Task",
+        "operationId": "update_task_api_v1_tasks__task_id__patch",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Allow closing or deleting with open children.",
+              "default": false,
+              "title": "Force"
+            },
+            "description": "Allow closing or deleting with open children."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Task",
+        "operationId": "delete_task_api_v1_tasks__task_id__delete",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Allow closing or deleting with open children.",
+              "default": false,
+              "title": "Force"
+            },
+            "description": "Allow closing or deleting with open children."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/stream": {
+      "get": {
+        "summary": "Stream",
+        "description": "The message carries no data: the client re-reads what it shows.",
+        "operationId": "stream_api_v1_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/event-stream": {
+                "itemSchema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "retry": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Action": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "delete"
+        ],
+        "title": "Action"
+      },
+      "Actor": {
+        "type": "string",
+        "enum": [
+          "vladimir",
+          "claude",
+          "system"
+        ],
+        "title": "Actor"
+      },
+      "DatabaseOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "demo": {
+            "type": "boolean",
+            "title": "Demo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "demo"
+        ],
+        "title": "DatabaseOut"
+      },
+      "Entity": {
+        "type": "string",
+        "enum": [
+          "project",
+          "milestone",
+          "task"
+        ],
+        "title": "Entity"
+      },
+      "ErrorBody": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "message"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorOut": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorOut"
+      },
+      "EventOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/Actor"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "entity_id": {
+            "type": "integer",
+            "title": "Entity Id"
+          },
+          "action": {
+            "$ref": "#/components/schemas/Action"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "old_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Value"
+          },
+          "new_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "entity",
+          "entity_id",
+          "action",
+          "field",
+          "old_value",
+          "new_value"
+        ],
+        "title": "EventOut"
+      },
+      "FocusKind": {
+        "type": "string",
+        "enum": [
+          "current",
+          "next"
+        ],
+        "title": "FocusKind"
+      },
+      "FocusOut": {
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FocusKind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity",
+          "id",
+          "title",
+          "kind"
+        ],
+        "title": "FocusOut"
+      },
+      "LimitsOut": {
+        "properties": {
+          "name": {
+            "type": "integer",
+            "title": "Name"
+          },
+          "title": {
+            "type": "integer",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "integer",
+            "title": "Summary"
+          },
+          "comment": {
+            "type": "integer",
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "title",
+          "summary",
+          "comment"
+        ],
+        "title": "LimitsOut"
+      },
+      "MetaOut": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseOut"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LimitsOut"
+          },
+          "upcoming_days": {
+            "type": "integer",
+            "title": "Upcoming Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "database",
+          "limits",
+          "upcoming_days"
+        ],
+        "title": "MetaOut"
+      },
+      "MilestoneCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "default": "planned"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "MilestoneCreate"
+      },
+      "MilestoneNodeOut": {
+        "properties": {
+          "milestone": {
+            "$ref": "#/components/schemas/MilestoneOut"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue"
+          },
+          "upcoming": {
+            "type": "boolean",
+            "title": "Upcoming"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/SignalsOut"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskNodeOut"
+            },
+            "type": "array",
+            "title": "Tasks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "milestone",
+          "progress",
+          "overdue",
+          "upcoming",
+          "signals",
+          "tasks"
+        ],
+        "title": "MilestoneNodeOut"
+      },
+      "MilestoneOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "done_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "status",
+          "start_date",
+          "due_date",
+          "summary",
+          "position",
+          "created_at",
+          "updated_at",
+          "done_at"
+        ],
+        "title": "MilestoneOut"
+      },
+      "MilestonePatch": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Status"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MilestonePatch"
+      },
+      "ProjectCreate": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "default": "backlog"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "default": 0
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "obsidian_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Obsidian Path"
+          },
+          "repo_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo Path"
+          },
+          "github_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "slug",
+          "name"
+        ],
+        "title": "ProjectCreate"
+      },
+      "ProjectNodeOut": {
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/ProjectOut"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue"
+          },
+          "upcoming": {
+            "type": "boolean",
+            "title": "Upcoming"
+          },
+          "focus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FocusOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signals": {
+            "$ref": "#/components/schemas/SignalsOut"
+          },
+          "milestones": {
+            "items": {
+              "$ref": "#/components/schemas/MilestoneNodeOut"
+            },
+            "type": "array",
+            "title": "Milestones"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskNodeOut"
+            },
+            "type": "array",
+            "title": "Tasks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project",
+          "progress",
+          "overdue",
+          "upcoming",
+          "focus",
+          "signals",
+          "milestones",
+          "tasks"
+        ],
+        "title": "ProjectNodeOut"
+      },
+      "ProjectOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "obsidian_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Obsidian Path"
+          },
+          "repo_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo Path"
+          },
+          "github_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Url"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "done_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done At"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "status",
+          "priority",
+          "start_date",
+          "due_date",
+          "summary",
+          "obsidian_path",
+          "repo_path",
+          "github_url",
+          "position",
+          "created_at",
+          "updated_at",
+          "done_at",
+          "archived_at"
+        ],
+        "title": "ProjectOut"
+      },
+      "ProjectPatch": {
+        "properties": {
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Status"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "obsidian_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Obsidian Path"
+          },
+          "repo_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo Path"
+          },
+          "github_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Url"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProjectPatch"
+      },
+      "SignalsOut": {
+        "properties": {
+          "in_progress": {
+            "type": "integer",
+            "title": "In Progress"
+          },
+          "blocked": {
+            "type": "integer",
+            "title": "Blocked"
+          },
+          "overdue": {
+            "type": "integer",
+            "title": "Overdue"
+          },
+          "upcoming": {
+            "type": "integer",
+            "title": "Upcoming"
+          }
+        },
+        "type": "object",
+        "required": [
+          "in_progress",
+          "blocked",
+          "overdue",
+          "upcoming"
+        ],
+        "title": "SignalsOut"
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "backlog",
+          "planned",
+          "in_progress",
+          "paused",
+          "blocked",
+          "done",
+          "canceled"
+        ],
+        "title": "Status"
+      },
+      "TaskCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "milestone_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Milestone Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "default": "backlog"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "default": 0
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "TaskCreate"
+      },
+      "TaskNodeOut": {
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/TaskOut"
+          },
+          "overdue": {
+            "type": "boolean",
+            "title": "Overdue"
+          },
+          "upcoming": {
+            "type": "boolean",
+            "title": "Upcoming"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/SignalsOut"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/TaskNodeOut"
+            },
+            "type": "array",
+            "title": "Children"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task",
+          "overdue",
+          "upcoming",
+          "signals",
+          "children"
+        ],
+        "title": "TaskNodeOut"
+      },
+      "TaskOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "milestone_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Milestone Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "done_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "milestone_id",
+          "parent_id",
+          "title",
+          "status",
+          "priority",
+          "start_date",
+          "due_date",
+          "comment",
+          "position",
+          "created_at",
+          "updated_at",
+          "done_at"
+        ],
+        "title": "TaskOut"
+      },
+      "TaskPatch": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Status"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "milestone_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Milestone Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TaskPatch"
+      },
+      "TreeOut": {
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectNodeOut"
+            },
+            "type": "array",
+            "title": "Projects"
+          }
+        },
+        "type": "object",
+        "required": [
+          "today",
+          "projects"
+        ],
+        "title": "TreeOut"
+      }
+    }
+  }
+}
