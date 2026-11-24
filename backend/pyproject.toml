@@ -1,0 +1,43 @@
+[project]
+name = "orbit"
+version = "0.1.0"
+description = "Local-first project tracker for one person and an AI agent"
+authors = [
+    { name = "Vladimir Bystrov", email = "206220498+VladimirB23@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.1",
+    "sqlalchemy>=2.1.9",
+    "typer>=0.29.2",
+]
+
+[project.scripts]
+orbit = "orbit.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
