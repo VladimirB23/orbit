@@ -1,6 +1,6 @@
 # Orbit — PRD
 
-v0.3 · 2026-11-24 · этапы 1 и 2 готовы; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`
+v0.4 · 2026-11-24 · этапы 1-3 готовы; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`
 
 ## Проблема
 
@@ -31,7 +31,7 @@ v0.3 · 2026-11-24 · этапы 1 и 2 готовы; модель: `docs/adr/00
 | `milestones` | id, project_id, name, status, start_date, due_date, summary, position, created_at, updated_at, done_at |
 | `tasks` | id, project_id, milestone_id?, parent_id?, title, status, priority, start_date, due_date, comment (до 280 симв.), position, created_at, updated_at, done_at |
 | `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value |
-| `sessions` (этап 3) | id, project_id, started_at, ended_at, title, prompts, files, commits — импорт журналов сессий Claude |
+| `sessions` | id, external_id (id сессии Claude), project_id, started_at, ended_at, title, prompts, files, commits (числа), folder — импорт журналов сессий из Obsidian (ADR 0004) |
 
 - **Статусы** (одни для всех уровней): `backlog` → `planned` → `in_progress` → `paused` / `blocked` → `done` / `canceled`.
   Переходы свободные; закрыть или удалить элемент с открытыми потомками можно только с `--force` (ADR 0002).
@@ -44,12 +44,15 @@ v0.3 · 2026-11-24 · этапы 1 и 2 готовы; модель: `docs/adr/00
 
 1. **Дерево** (главный экран). Сверху сводка: в работе, заблокировано, просрочено, ближайшие 7 дней
    (нажатие фильтрует дерево); у свернутого проекта видны текущий этап и сигналы изнутри. Строки Project → Milestone → Task, раскрытие по клику и стрелкам.
-   Колонки: название, статус, прогресс, старт, дедлайн, комментарий, Obsidian. Правка прямо в
+   Колонки: название, статус, прогресс, старт, дедлайн, комментарий. У проекта под комментарием адрес
+   папки, нажатие открывает ее в VS Code. Правка прямо в
    ячейке, быстрое добавление строки, фильтры (статус, просрочено, проект), поиск.
-2. **Панель элемента** (drawer справа): все поля плюс история изменений из `events`.
+2. **Панель элемента** (drawer справа): адрес папки (VS Code, копировать), заметка Obsidian, все поля,
+   у проекта сессии Claude с командой продолжения, история изменений из `events`.
 3. Светлая и темная тема, горячие клавиши.
+4. **Палитра `Ctrl+K`**: перейти к любому пункту, открыть папку или заметку, выполнить команду.
 
-После MVP: палитра команд `Ctrl+K`, таймлайн, аналитика, канбан.
+После MVP: таймлайн, аналитика, канбан.
 
 ## Вкладка «Аналитика» (этап 5)
 
@@ -74,6 +77,7 @@ orbit milestone add <project> "Core and CLI" --due 2026-11-28
 orbit task add <project> "DB schema" --milestone 1
 orbit set task 12 --status done --comment "schema + migrations"
 orbit log --since 7d              # change history
+orbit session list [project]      # Claude sessions imported from the Obsidian journals
 orbit export --csv out/           # for Tableau (stage 5)
 orbit backup
 orbit seed --demo                 # fictional data into data/demo.db
@@ -105,7 +109,7 @@ orbit serve                       # API + UI on http://127.0.0.1:8420, this comp
 | 0   | Спека и каркас: PRD, ADR, CLAUDE.md, git                                             | готово 24.11                                        |
 | 1   | Ядро: схема и миграции, доменная логика, `events`, CLI, тесты, demo-seed             | готово 24.11                                        |
 | 2   | API и интерфейс: дерево, панель, правка в ячейке, SSE                                | готово 24.11 (статус из CLI виден в UI за 2 с)      |
-| 3   | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | затем разбор прошлых сессий в orbit + Obsidian      |
+| 3   | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | готово 24.11, кроме правки скилла `/wrap-up` (ждет «да»); затем разбор прошлых сессий в orbit + Obsidian |
 | 4   | Таймлайн этапов (Гант)                                                               |                                                     |
 | 5   | Аналитика, `export`, дашборд Tableau Public                                          |                                                     |
 | 6   | Релиз: README ru/en, скриншоты, CI, публичный репозиторий (после «да»)               |                                                     |

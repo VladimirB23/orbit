@@ -9,11 +9,13 @@
 ## Структура
 
 - `backend/src/orbit/`: `domain/` (правила, сервис `Orbit`, `events`), `db/` (модели, миграции Alembic),
-  `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`; тесты `backend/tests/`.
+  `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`, `journal.py` (разбор
+  журналов сессий из Obsidian), `sync.py` (импорт сам, пока работает сервер); тесты `backend/tests/`.
 - `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом.
 - `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны),
   `src/components/ui/` (shadcn), `src/index.css` (все цвета и отступы), `e2e/` (Playwright, свой сервер на тест).
-- `data/`: живая база `orbit.db`, бэкапы, `demo.db` — только локально, в git не попадает.
+- `data/`: живая база `orbit.db`, настройки `orbit.toml` (`vault = '...'`), бэкапы, `demo.db` — только
+  локально, в git не попадает.
 - `docs/`: PRD, ADR, скриншоты.
 
 ## Команды
@@ -52,6 +54,8 @@ orbit set project|milestone|task <slug|id> [--name --title --slug --status --pri
           --summary --comment --obsidian --repo --github --milestone --parent --position] [--force]
                                              # 'none' clears a field: --due none
 orbit log [--since 7d|12h|2w|YYYY-MM-DD] [--entity task --id 12] [--limit 50]
+orbit session import                         # journals of the vault -> sessions (orbit serve does it itself)
+orbit session list [project] [--limit 20]    # Claude sessions, newest first
 orbit serve [--port 8420] [--no-open]        # API + UI on 127.0.0.1 only; daily backup on start
 orbit openapi                                # API schema (used by npm run gen:api)
 orbit backup [--dir path]                    # default data/backups/
@@ -61,7 +65,8 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 ```
 
 Окружение: `ORBIT_DB` — файл базы (по умолчанию `data/orbit.db`), `ORBIT_ACTOR` — кто меняет
-(`vladimir` по умолчанию, `claude` в сессиях Claude, `system`). SQLAlchemy собирается без C-расширений
+(`vladimir` по умолчанию, `claude` в сессиях Claude, `system`), `ORBIT_VAULT` — vault Obsidian вместо
+настройки рядом с базой. SQLAlchemy собирается без C-расширений
 (`no-binary-package` в `pyproject.toml`): Smart App Control блокирует его `.pyd`.
 
 ## Правила
@@ -70,6 +75,7 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Доменная логика (статусы, прогресс, `events`) — сначала тест, потом код.
 - Любое изменение схемы — миграция Alembic плюс тест.
 - Изменил API: `npm run gen:api`, иначе упадет `test_contract.py`. Формат ответов `/api/v1` не ломать.
+- Новая ссылка наружу: путь проверяется в `frontend/src/lib/links.ts`, сетевые пути и чужие схемы не ссылки.
 - Сервер слушает только `127.0.0.1`; открыть наружу можно только с токенами и новым ADR.
 - Реальная база никогда не попадает в git, скриншоты и демо — только на `orbit seed --demo`.
 - Перед добавлением зависимости проверь, что она жива, и возьми актуальную версию (`uv add`, `npm view`).
