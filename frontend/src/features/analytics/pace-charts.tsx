@@ -119,7 +119,7 @@ export function CycleChart({ data, className }: { data: Analytics; className?: s
             Известно начало у {cycle.known} из нужных {cycle.needed}.
           </b>{' '}
           {sameDay
-            ? 'Все закрыты в день начала: пока это скорость записи в трекер, а не работы.'
+            ? `${cycle.known === 1 ? 'Закрыта' : 'Все закрыты'} в день начала: пока это скорость записи в трекер, а не работы.`
             : cycle.known > 0
               ? `Дней: ${cycle.items.map((item) => item.days).join(', ')}.`
               : 'Переводи задачи в "В работе", когда берешься за них.'}

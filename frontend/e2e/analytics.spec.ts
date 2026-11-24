@@ -210,7 +210,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 for (const width of [360, 768, 1024, 1920]) {
   test(`nothing sticks out sideways at ${width} px`, async ({ page, orbit }) => {
     await page.setViewportSize({ width, height: 800 });
-    for (const query of ['', '&period=all', '&period=7']) {
+    for (const query of ['', '&period=all', '&period=7d', '&period=90d']) {
       await page.goto(`${orbit.url}/?screen=analytics${query}`);
       await expect(card(page, 'Где фокус')).toBeVisible();
       const wide = await page.evaluate(() => {

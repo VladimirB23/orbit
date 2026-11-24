@@ -81,7 +81,7 @@ export function AppShell() {
         </h1>
         {meta?.database.demo && (
           <span className="rounded-md bg-sun-wash px-2 py-0.5 text-sm text-sun-ink max-sm:px-1.5">
-            Демо<span className="max-lg:sr-only">: данные вымышлены</span>
+            Демо<span className="max-xl:sr-only">: данные вымышлены</span>
           </span>
         )}
         <ScreenSwitch />
@@ -224,7 +224,7 @@ function LiveMark({ state }: { state: LiveState }) {
       className="mr-2 flex items-center gap-2 text-muted-foreground text-sm max-sm:mr-0"
     >
       <span className={cn('size-2 rounded-full', dot)} />
-      <span className="max-lg:sr-only">{text}</span>
+      <span className="max-xl:sr-only">{text}</span>
     </span>
   );
 }

@@ -1,4 +1,5 @@
 /** When attention went where: projects by time, the darker the more. */
+import { useEffect, useRef } from 'react';
 import type { Analytics } from '@/api/types';
 import {
   heatLevel,
@@ -32,6 +33,12 @@ const words = (kind: Kind, n: number) =>
 export function ActivityChart({ data, className }: { data: Analytics; className?: string }) {
   const [kind, setKind] = usePersisted<Kind>('orbit.heat', 'sessions', asKind);
   const unit = data.step;
+  // The latest is what people look for: when the table is wider than the card, show its end.
+  const box = useRef<HTMLElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: again for every other set of steps
+  useEffect(() => {
+    if (box.current) box.current.scrollLeft = box.current.scrollWidth;
+  }, [data.start, data.end]);
   const rows = topRows(data.activity, MOST_ROWS);
   const totals = data.steps.map((_, i) => rows.reduce((sum, row) => sum + (row[kind][i] ?? 0), 0));
   const top = Math.max(...rows.flatMap((row) => row[kind]), 1);
@@ -83,14 +90,15 @@ export function ActivityChart({ data, className }: { data: Analytics; className?
         <Note>Нет ни сессий, ни коммитов: выбери период подлиннее или другой проект.</Note>
       ) : (
         <section
+          ref={box}
           aria-label="Активность по времени"
-          className="overflow-x-auto pb-1"
+          className="relative overflow-x-auto pb-1"
           // biome-ignore lint/a11y/noNoninteractiveTabindex: it scrolls sideways, the keyboard too
           tabIndex={0}
         >
           <table
             className="w-full table-fixed border-separate border-spacing-0.5 text-xs [--names:7rem] @md:[--names:11rem]"
-            style={{ minWidth: `calc(var(--names) + ${data.steps.length * 1.5 + 3}rem)` }}
+            style={{ minWidth: `calc(var(--names) + ${data.steps.length * 1.35 + 3}rem)` }}
           >
             <colgroup>
               <col className="w-(--names)" />
@@ -101,7 +109,7 @@ export function ActivityChart({ data, className }: { data: Analytics; className?
             </colgroup>
             <thead>
               <tr className="text-muted-foreground">
-                <th scope="col" className="text-left font-normal">
+                <th scope="col" className="sticky left-0 z-10 bg-card text-left font-normal">
                   <span className="sr-only">Проект</span>
                 </th>
                 {data.steps.map((step, i) => (
@@ -129,7 +137,7 @@ export function ActivityChart({ data, className }: { data: Analytics; className?
                   <th
                     scope="row"
                     className={cn(
-                      'truncate pr-2 text-left font-normal text-sm',
+                      'sticky left-0 z-10 truncate bg-card pr-2 text-left font-normal text-sm',
                       row.slug === null && 'text-muted-foreground',
                     )}
                     title={row.name}
@@ -162,7 +170,10 @@ export function ActivityChart({ data, className }: { data: Analytics; className?
             {rows.length > 1 && (
               <tfoot>
                 <tr className="text-muted-foreground">
-                  <th scope="row" className="pr-2 text-left font-normal text-sm">
+                  <th
+                    scope="row"
+                    className="sticky left-0 z-10 bg-card pr-2 text-left font-normal text-sm"
+                  >
                     Всего
                   </th>
                   {data.steps.map((step, i) => (

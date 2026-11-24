@@ -149,7 +149,10 @@ function Row({ row, today, scale, onOpen }: RowProps) {
         {low && (
           <span className="mt-0.5 flex items-center gap-1 text-sun-ink text-xs">
             <TriangleAlert aria-hidden="true" className="size-3.5 shrink-0" />
-            мало внимания, ждали {percent(row.expected ?? 0)}
+            <span>
+              <span className="@max-sm:sr-only">мало внимания, </span>
+              ждали {percent(row.expected ?? 0)}
+            </span>
           </span>
         )}
         {!low && row.expected !== null && (
