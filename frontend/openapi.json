@@ -375,6 +375,127 @@
         }
       }
     },
+    "/api/v1/analytics": {
+      "get": {
+        "summary": "Analytics",
+        "description": "Local days, both included; without a start: since the first known fact.",
+        "operationId": "analytics_api_v1_analytics_get",
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "project",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/undo": {
       "post": {
         "summary": "Undo Last",
@@ -1439,6 +1560,40 @@
         ],
         "title": "Action"
       },
+      "ActivityRowOut": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "sessions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Sessions"
+          },
+          "commits": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Commits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "sessions",
+          "commits"
+        ],
+        "title": "ActivityRowOut"
+      },
       "Actor": {
         "type": "string",
         "enum": [
@@ -1483,6 +1638,209 @@
         "title": "ActualOut",
         "description": "Dates from the journal, not from the plan."
       },
+      "AnalyticsOut": {
+        "properties": {
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "step": {
+            "type": "string",
+            "title": "Step"
+          },
+          "steps": {
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TotalsOut"
+          },
+          "focus": {
+            "items": {
+              "$ref": "#/components/schemas/FocusRowOut"
+            },
+            "type": "array",
+            "title": "Focus"
+          },
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityRowOut"
+            },
+            "type": "array",
+            "title": "Activity"
+          },
+          "closed": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Closed"
+          },
+          "born_closed": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Born Closed"
+          },
+          "cycle": {
+            "$ref": "#/components/schemas/CycleOut"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanOut"
+          },
+          "deadlines": {
+            "items": {
+              "$ref": "#/components/schemas/DeadlineOut"
+            },
+            "type": "array",
+            "title": "Deadlines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "today",
+          "start",
+          "end",
+          "step",
+          "steps",
+          "totals",
+          "focus",
+          "activity",
+          "closed",
+          "born_closed",
+          "cycle",
+          "plan",
+          "deadlines"
+        ],
+        "title": "AnalyticsOut"
+      },
+      "Attention": {
+        "type": "string",
+        "enum": [
+          "low",
+          "fair",
+          "high",
+          "unknown"
+        ],
+        "title": "Attention",
+        "description": "What a project gets of sessions and commits against what its priority asks for."
+      },
+      "CycleItemOut": {
+        "properties": {
+          "task_id": {
+            "type": "integer",
+            "title": "Task Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "started": {
+            "type": "string",
+            "format": "date",
+            "title": "Started"
+          },
+          "done": {
+            "type": "string",
+            "format": "date",
+            "title": "Done"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "title",
+          "project",
+          "started",
+          "done",
+          "days"
+        ],
+        "title": "CycleItemOut"
+      },
+      "CycleOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CycleItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "p85": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P85"
+          },
+          "needed": {
+            "type": "integer",
+            "title": "Needed"
+          },
+          "known": {
+            "type": "integer",
+            "title": "Known"
+          },
+          "no_start": {
+            "type": "integer",
+            "title": "No Start"
+          },
+          "born_closed": {
+            "type": "integer",
+            "title": "Born Closed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "median",
+          "p85",
+          "needed",
+          "known",
+          "no_start",
+          "born_closed"
+        ],
+        "title": "CycleOut"
+      },
       "DatabaseOut": {
         "properties": {
           "name": {
@@ -1500,6 +1858,48 @@
           "demo"
         ],
         "title": "DatabaseOut"
+      },
+      "DeadlineOut": {
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "due": {
+            "type": "string",
+            "format": "date",
+            "title": "Due"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entity",
+          "id",
+          "project",
+          "title",
+          "status",
+          "due",
+          "days"
+        ],
+        "title": "DeadlineOut"
       },
       "Entity": {
         "type": "string",
@@ -1646,6 +2046,127 @@
         ],
         "title": "FocusOut"
       },
+      "FocusRowOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          },
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "prompts": {
+            "type": "integer",
+            "title": "Prompts"
+          },
+          "commits": {
+            "type": "integer",
+            "title": "Commits"
+          },
+          "closed": {
+            "type": "integer",
+            "title": "Closed"
+          },
+          "sessions_share": {
+            "type": "number",
+            "title": "Sessions Share"
+          },
+          "commits_share": {
+            "type": "number",
+            "title": "Commits Share"
+          },
+          "share": {
+            "type": "number",
+            "title": "Share"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "attention": {
+            "$ref": "#/components/schemas/Attention"
+          },
+          "last_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Day"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "working": {
+            "type": "integer",
+            "title": "Working"
+          },
+          "stuck": {
+            "type": "integer",
+            "title": "Stuck"
+          },
+          "ahead": {
+            "type": "integer",
+            "title": "Ahead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "status",
+          "priority",
+          "archived",
+          "sessions",
+          "prompts",
+          "commits",
+          "closed",
+          "sessions_share",
+          "commits_share",
+          "share",
+          "expected",
+          "attention",
+          "last_day",
+          "done",
+          "working",
+          "stuck",
+          "ahead"
+        ],
+        "title": "FocusRowOut"
+      },
       "LimitsOut": {
         "properties": {
           "name": {
@@ -1673,6 +2194,31 @@
           "comment"
         ],
         "title": "LimitsOut"
+      },
+      "MeasureOut": {
+        "properties": {
+          "value": {
+            "type": "integer",
+            "title": "Value"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "before"
+        ],
+        "title": "MeasureOut"
       },
       "MetaOut": {
         "properties": {
@@ -1976,6 +2522,107 @@
         "additionalProperties": false,
         "type": "object",
         "title": "MilestonePatch"
+      },
+      "PlanItemOut": {
+        "properties": {
+          "milestone_id": {
+            "type": "integer",
+            "title": "Milestone Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "due": {
+            "type": "string",
+            "format": "date",
+            "title": "Due"
+          },
+          "done": {
+            "type": "string",
+            "format": "date",
+            "title": "Done"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          },
+          "moves": {
+            "type": "integer",
+            "title": "Moves"
+          },
+          "automatic": {
+            "type": "boolean",
+            "title": "Automatic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "milestone_id",
+          "name",
+          "project",
+          "due",
+          "done",
+          "days",
+          "moves",
+          "automatic"
+        ],
+        "title": "PlanItemOut"
+      },
+      "PlanOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlanItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "needed": {
+            "type": "integer",
+            "title": "Needed"
+          },
+          "compared": {
+            "type": "integer",
+            "title": "Compared"
+          },
+          "late": {
+            "type": "integer",
+            "title": "Late"
+          },
+          "automatic": {
+            "type": "integer",
+            "title": "Automatic"
+          },
+          "no_due": {
+            "type": "integer",
+            "title": "No Due"
+          },
+          "set_after": {
+            "type": "integer",
+            "title": "Set After"
+          },
+          "born_closed": {
+            "type": "integer",
+            "title": "Born Closed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "needed",
+          "compared",
+          "late",
+          "automatic",
+          "no_due",
+          "set_after",
+          "born_closed"
+        ],
+        "title": "PlanOut"
       },
       "ProjectCreate": {
         "properties": {
@@ -2869,6 +3516,36 @@
         "additionalProperties": false,
         "type": "object",
         "title": "TaskPatch"
+      },
+      "TotalsOut": {
+        "properties": {
+          "sessions": {
+            "$ref": "#/components/schemas/MeasureOut"
+          },
+          "commits": {
+            "$ref": "#/components/schemas/MeasureOut"
+          },
+          "closed": {
+            "$ref": "#/components/schemas/MeasureOut"
+          },
+          "prompts": {
+            "type": "integer",
+            "title": "Prompts"
+          },
+          "born_closed": {
+            "type": "integer",
+            "title": "Born Closed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions",
+          "commits",
+          "closed",
+          "prompts",
+          "born_closed"
+        ],
+        "title": "TotalsOut"
       },
       "TreeOut": {
         "properties": {

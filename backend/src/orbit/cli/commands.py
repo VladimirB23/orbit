@@ -30,6 +30,7 @@ from orbit.db.backup import auto_backup, backup_dir, copy_database
 from orbit.db.engine import current_revision, ensure_schema, head_revision, make_engine
 from orbit.db.models import Commit, Event, Milestone, Project, Task, WorkSession
 from orbit.domain import undo
+from orbit.domain.analytics import Period, analyze
 from orbit.domain.commits import CommitRecord
 from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, OrbitError, ValidationError
@@ -254,6 +255,24 @@ def tree(
         lambda o: [serialize.project_node(n) for n in o.tree(project, include_archived=all_)],
         render.tree,
     )
+
+
+@app.command()
+def stats(
+    ctx: typer.Context,
+    project: Annotated[str | None, typer.Argument(help="Project slug.")] = None,
+    days: Annotated[int, typer.Option(help="Last N days.")] = 30,
+    json_out: JsonOpt = False,
+) -> None:
+    """Where attention goes: sessions, commits, closed tasks, plan against fact."""
+
+    def action(o: Orbit) -> dict[str, Any]:
+        if days < 1:
+            raise ValidationError("--days must be at least 1")
+        today = o.clock.today()
+        return asdict(analyze(o, Period(today - timedelta(days=days - 1), today), project))
+
+    execute(ctx, json_out, action, render.stats)
 
 
 @app.command()

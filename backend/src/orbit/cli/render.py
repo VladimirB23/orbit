@@ -197,6 +197,40 @@ def sessions(rows: list[dict[str, Any]]) -> None:
     out.print(table)
 
 
+ATTENTION_STYLE = {"low": "bold red", "fair": "", "high": "bold yellow", "unknown": "dim"}
+
+
+def stats(data: dict[str, Any]) -> None:
+    out = console()
+    totals = data["totals"]
+    out.print(
+        f"{data['start']} .. {data['end']}:"
+        f" {totals['sessions']['value']} sessions, {totals['commits']['value']} commits,"
+        f" {totals['closed']['value']} tasks closed"
+        f" (and {totals['born_closed']} written down already closed)"
+    )
+    table = Table()
+    table.add_column("project", no_wrap=True)
+    for column in ("ses.", "com.", "closed"):
+        table.add_column(column, justify="right")
+    for column in ("share", "wanted", "attention", "moved"):
+        table.add_column(column, no_wrap=True)
+    for row in data["focus"]:
+        attention = str(row["attention"])
+        style = ATTENTION_STYLE[attention]
+        table.add_row(
+            escape(row["slug"]),
+            str(row["sessions"]),
+            str(row["commits"]),
+            str(row["closed"]),
+            _pct(row["share"]),
+            _pct(row["expected"]),
+            f"[{style}]{attention}[/]" if style else attention,
+            str(row["last_day"] or ""),
+        )
+    out.print(table)
+
+
 def commit_import(data: dict[str, Any]) -> None:
     out = console()
     for slug, done in data["projects"].items():

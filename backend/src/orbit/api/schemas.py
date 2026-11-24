@@ -6,6 +6,7 @@ from typing import Any, ClassVar, Self
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from orbit.domain.enums import Action, Actor, Entity, Status
+from orbit.domain.rules import Attention
 from orbit.domain.service import FocusKind
 
 # --- responses ----------------------------------------------------------------
@@ -156,6 +157,116 @@ class SessionOut(Out):
     files: int
     commits: int
     folder: str | None
+
+
+class MeasureOut(Out):
+    value: int
+    before: int | None  # null: there was no journal of it in the period before
+
+
+class TotalsOut(Out):
+    sessions: MeasureOut
+    commits: MeasureOut
+    closed: MeasureOut
+    prompts: int
+    born_closed: int
+
+
+class FocusRowOut(Out):
+    id: int
+    slug: str
+    name: str
+    status: Status
+    priority: int
+    archived: bool
+    sessions: int
+    prompts: int
+    commits: int
+    closed: int
+    sessions_share: float
+    commits_share: float
+    share: float  # of attention: the mean of both
+    expected: float | None  # by priority, for projects in progress
+    attention: Attention
+    last_day: date | None
+    done: int
+    working: int
+    stuck: int
+    ahead: int
+
+
+class ActivityRowOut(Out):
+    slug: str
+    name: str
+    sessions: list[int]
+    commits: list[int]
+
+
+class CycleItemOut(Out):
+    task_id: int
+    title: str
+    project: str
+    started: date
+    done: date
+    days: int
+
+
+class CycleOut(Out):
+    items: list[CycleItemOut]
+    median: float | None
+    p85: int | None
+    needed: int
+    known: int
+    no_start: int
+    born_closed: int
+
+
+class PlanItemOut(Out):
+    milestone_id: int
+    name: str
+    project: str
+    due: date
+    done: date
+    days: int
+    moves: int
+    automatic: bool
+
+
+class PlanOut(Out):
+    items: list[PlanItemOut]
+    needed: int
+    compared: int
+    late: int
+    automatic: int
+    no_due: int
+    set_after: int
+    born_closed: int
+
+
+class DeadlineOut(Out):
+    entity: Entity
+    id: int
+    project: str
+    title: str
+    status: Status
+    due: date
+    days: int
+
+
+class AnalyticsOut(Out):
+    today: date
+    start: date
+    end: date
+    step: str
+    steps: list[date]
+    totals: TotalsOut
+    focus: list[FocusRowOut]
+    activity: list[ActivityRowOut]
+    closed: list[int]
+    born_closed: list[int]
+    cycle: CycleOut
+    plan: PlanOut
+    deadlines: list[DeadlineOut]
 
 
 class LimitsOut(BaseModel):

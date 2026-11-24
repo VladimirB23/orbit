@@ -78,6 +78,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Analytics
+         * @description Local days, both included; without a start: since the first known fact.
+         */
+        get: operations["analytics_api_v1_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/undo": {
         parameters: {
             query?: never;
@@ -282,6 +302,17 @@ export interface components {
          * @enum {string}
          */
         Action: "create" | "update" | "delete";
+        /** ActivityRowOut */
+        ActivityRowOut: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Sessions */
+            sessions: number[];
+            /** Commits */
+            commits: number[];
+        };
         /**
          * Actor
          * @enum {string}
@@ -297,12 +328,109 @@ export interface components {
             /** End */
             end: string | null;
         };
+        /** AnalyticsOut */
+        AnalyticsOut: {
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            /** Step */
+            step: string;
+            /** Steps */
+            steps: string[];
+            totals: components["schemas"]["TotalsOut"];
+            /** Focus */
+            focus: components["schemas"]["FocusRowOut"][];
+            /** Activity */
+            activity: components["schemas"]["ActivityRowOut"][];
+            /** Closed */
+            closed: number[];
+            /** Born Closed */
+            born_closed: number[];
+            cycle: components["schemas"]["CycleOut"];
+            plan: components["schemas"]["PlanOut"];
+            /** Deadlines */
+            deadlines: components["schemas"]["DeadlineOut"][];
+        };
+        /**
+         * Attention
+         * @description What a project gets of sessions and commits against what its priority asks for.
+         * @enum {string}
+         */
+        Attention: "low" | "fair" | "high" | "unknown";
+        /** CycleItemOut */
+        CycleItemOut: {
+            /** Task Id */
+            task_id: number;
+            /** Title */
+            title: string;
+            /** Project */
+            project: string;
+            /**
+             * Started
+             * Format: date
+             */
+            started: string;
+            /**
+             * Done
+             * Format: date
+             */
+            done: string;
+            /** Days */
+            days: number;
+        };
+        /** CycleOut */
+        CycleOut: {
+            /** Items */
+            items: components["schemas"]["CycleItemOut"][];
+            /** Median */
+            median: number | null;
+            /** P85 */
+            p85: number | null;
+            /** Needed */
+            needed: number;
+            /** Known */
+            known: number;
+            /** No Start */
+            no_start: number;
+            /** Born Closed */
+            born_closed: number;
+        };
         /** DatabaseOut */
         DatabaseOut: {
             /** Name */
             name: string;
             /** Demo */
             demo: boolean;
+        };
+        /** DeadlineOut */
+        DeadlineOut: {
+            entity: components["schemas"]["Entity"];
+            /** Id */
+            id: number;
+            /** Project */
+            project: string;
+            /** Title */
+            title: string;
+            status: components["schemas"]["Status"];
+            /**
+             * Due
+             * Format: date
+             */
+            due: string;
+            /** Days */
+            days: number;
         };
         /**
          * Entity
@@ -355,6 +483,47 @@ export interface components {
             title: string;
             kind: components["schemas"]["FocusKind"];
         };
+        /** FocusRowOut */
+        FocusRowOut: {
+            /** Id */
+            id: number;
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            status: components["schemas"]["Status"];
+            /** Priority */
+            priority: number;
+            /** Archived */
+            archived: boolean;
+            /** Sessions */
+            sessions: number;
+            /** Prompts */
+            prompts: number;
+            /** Commits */
+            commits: number;
+            /** Closed */
+            closed: number;
+            /** Sessions Share */
+            sessions_share: number;
+            /** Commits Share */
+            commits_share: number;
+            /** Share */
+            share: number;
+            /** Expected */
+            expected: number | null;
+            attention: components["schemas"]["Attention"];
+            /** Last Day */
+            last_day: string | null;
+            /** Done */
+            done: number;
+            /** Working */
+            working: number;
+            /** Stuck */
+            stuck: number;
+            /** Ahead */
+            ahead: number;
+        };
         /** LimitsOut */
         LimitsOut: {
             /** Name */
@@ -365,6 +534,13 @@ export interface components {
             summary: number;
             /** Comment */
             comment: number;
+        };
+        /** MeasureOut */
+        MeasureOut: {
+            /** Value */
+            value: number;
+            /** Before */
+            before: number | null;
         };
         /** MetaOut */
         MetaOut: {
@@ -447,6 +623,50 @@ export interface components {
             summary?: string | null;
             /** Position */
             position?: number | null;
+        };
+        /** PlanItemOut */
+        PlanItemOut: {
+            /** Milestone Id */
+            milestone_id: number;
+            /** Name */
+            name: string;
+            /** Project */
+            project: string;
+            /**
+             * Due
+             * Format: date
+             */
+            due: string;
+            /**
+             * Done
+             * Format: date
+             */
+            done: string;
+            /** Days */
+            days: number;
+            /** Moves */
+            moves: number;
+            /** Automatic */
+            automatic: boolean;
+        };
+        /** PlanOut */
+        PlanOut: {
+            /** Items */
+            items: components["schemas"]["PlanItemOut"][];
+            /** Needed */
+            needed: number;
+            /** Compared */
+            compared: number;
+            /** Late */
+            late: number;
+            /** Automatic */
+            automatic: number;
+            /** No Due */
+            no_due: number;
+            /** Set After */
+            set_after: number;
+            /** Born Closed */
+            born_closed: number;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -689,6 +909,16 @@ export interface components {
             parent_id?: number | null;
             /** Position */
             position?: number | null;
+        };
+        /** TotalsOut */
+        TotalsOut: {
+            sessions: components["schemas"]["MeasureOut"];
+            commits: components["schemas"]["MeasureOut"];
+            closed: components["schemas"]["MeasureOut"];
+            /** Prompts */
+            prompts: number;
+            /** Born Closed */
+            born_closed: number;
         };
         /** TreeOut */
         TreeOut: {
@@ -945,6 +1175,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    analytics_api_v1_analytics_get: {
+        parameters: {
+            query?: {
+                start?: string | null;
+                end?: string | null;
+                project?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsOut"];
                 };
             };
             /** @description Forbidden */

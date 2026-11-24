@@ -1,6 +1,7 @@
 """REST endpoints. Business rules live in the domain layer, not here."""
 
 from collections.abc import Iterator
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -14,6 +15,7 @@ from orbit.api.state import AppState
 from orbit.config import is_demo
 from orbit.db.models import COMMENT_MAX, SUMMARY_MAX
 from orbit.domain import undo
+from orbit.domain.analytics import Period, all_time, analyze
 from orbit.domain.enums import Actor, Entity
 from orbit.domain.service import NAME_MAX, TITLE_MAX, UPCOMING_DAYS, Orbit
 
@@ -88,6 +90,19 @@ def sessions(
     """Claude sessions, newest first."""
     rows = orbit.sessions(project, limit=limit)
     return [s.SessionOut.model_validate(row) for row in rows]
+
+
+@router.get("/analytics")
+def analytics(
+    orbit: OrbitDep,
+    start: date | None = None,
+    end: date | None = None,
+    project: str | None = None,
+) -> s.AnalyticsOut:
+    """Local days, both included; without a start: since the first known fact."""
+    last = end or orbit.clock.today()
+    first = start or min(all_time(orbit).start, last)
+    return s.AnalyticsOut.model_validate(analyze(orbit, Period(first, last), project))
 
 
 # --- undo -----------------------------------------------------------------------
