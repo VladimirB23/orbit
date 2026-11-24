@@ -5,6 +5,7 @@ import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from orbit.domain.errors import ValidationError
 
@@ -25,6 +26,7 @@ def db_path() -> Path:
 @dataclass(frozen=True)
 class Settings:
     vault: Path | None = None  # Obsidian vault: links to notes and session journals
+    auto_dates: bool = False  # planned things get a deadline by themselves
 
 
 def settings_file(db: Path) -> Path:
@@ -32,20 +34,34 @@ def settings_file(db: Path) -> Path:
     return db.with_suffix(".toml")
 
 
+def is_demo(db: Path) -> bool:
+    """Fictional data: nothing real may flow in, and it may be shown to anyone."""
+    return db.name.startswith(DEMO_DB_PATH.stem)
+
+
+KNOWN_SETTINGS = ("vault", "auto_dates")
+
+
 def load_settings(db: Path, environ: Mapping[str, str]) -> Settings:
-    if vault := environ.get("ORBIT_VAULT"):
-        return Settings(vault=Path(vault).expanduser())
     path = settings_file(db)
-    if not path.exists():
-        return Settings()
+    data = _read(path) if path.exists() else {}
+    vault, auto_dates = data.get("vault"), data.get("auto_dates", False)
+    if vault is not None and not isinstance(vault, str):
+        raise ValidationError(f"{path.name}: vault must be a path in quotes")
+    if not isinstance(auto_dates, bool):
+        raise ValidationError(f"{path.name}: auto_dates must be true or false")
+    vault = environ.get("ORBIT_VAULT") or vault
+    return Settings(vault=Path(vault).expanduser() if vault else None, auto_dates=auto_dates)
+
+
+def _read(path: Path) -> dict[str, Any]:
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8-sig"))
     except tomllib.TOMLDecodeError as exc:
         raise ValidationError(f"{path.name}: {exc}") from None
-    unknown = sorted(set(data) - {"vault"})
+    unknown = sorted(set(data) - set(KNOWN_SETTINGS))
     if unknown:
-        raise ValidationError(f"{path.name}: unknown setting {', '.join(unknown)}; known: vault")
-    value = data.get("vault")
-    if value is not None and not isinstance(value, str):
-        raise ValidationError(f"{path.name}: vault must be a path in quotes")
-    return Settings(vault=Path(value).expanduser() if value else None)
+        raise ValidationError(
+            f"{path.name}: unknown setting {', '.join(unknown)}; known: {', '.join(KNOWN_SETTINGS)}"
+        )
+    return data

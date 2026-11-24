@@ -17,7 +17,7 @@ from orbit.db.engine import (
 from orbit.db.models import Base
 from orbit.domain.enums import Status
 
-TABLES = {"projects", "milestones", "tasks", "events", "sessions"}
+TABLES = {"projects", "milestones", "tasks", "events", "sessions", "commits"}
 NOW = "2026-11-24 10:00:00"
 
 
@@ -136,4 +136,20 @@ def test_old_events_survive_the_upgrade_to_batches(db_file: Path) -> None:
         indexes = {i["name"] for i in inspect(engine).get_indexes("events")}
     assert [tuple(row) for row in rows] == [("B", None, None)]
     assert indexes >= {"ix_events_entity", "ix_events_at", "ix_events_batch"}
+    engine.dispose()
+
+
+def test_projects_survive_the_upgrade_to_commits(db_file: Path) -> None:
+    engine = make_engine(db_file)
+    upgrade(engine, "0003")
+    _insert_project(engine)
+    upgrade(engine)
+    insert = text(
+        "INSERT INTO commits (project_id, sha, committed_at) VALUES (1, 'abc', '2026-11-24 10:00')"
+    )
+    with engine.begin() as conn:
+        assert conn.execute(text("SELECT slug FROM projects")).scalars().all() == ["p"]
+        conn.execute(insert)
+    with pytest.raises(IntegrityError), engine.begin() as conn:
+        conn.execute(insert)  # one commit of a project is counted once
     engine.dispose()

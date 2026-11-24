@@ -19,11 +19,17 @@ from orbit.api.ui import BuiltUI
 from orbit.config import UI_DIR
 from orbit.db.engine import ensure_schema, make_engine
 from orbit.domain.clock import Clock, SystemClock
-from orbit.sync import JournalSync
+from orbit.sync import JournalSync, RepoSync
 
 
 def create_app(
-    db: Path, *, clock: Clock | None = None, ui: Path = UI_DIR, vault: Path | None = None
+    db: Path,
+    *,
+    clock: Clock | None = None,
+    ui: Path = UI_DIR,
+    vault: Path | None = None,
+    auto_dates: bool = False,
+    repos: bool = False,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -32,11 +38,15 @@ def create_app(
         try:
             ensure_schema(engine)
             feed = ChangeFeed(db, now)
-            app.state.orbit = AppState(db=db, engine=engine, clock=now, feed=feed, vault=vault)
+            app.state.orbit = AppState(
+                db=db, engine=engine, clock=now, feed=feed, vault=vault, auto_dates=auto_dates
+            )
             stop = asyncio.Event()
             tasks = [asyncio.create_task(feed.run())]
             if vault is not None:
                 tasks.append(asyncio.create_task(JournalSync(engine, vault).run(stop)))
+            if repos:
+                tasks.append(asyncio.create_task(RepoSync(engine).run(stop)))
             try:
                 yield
             finally:

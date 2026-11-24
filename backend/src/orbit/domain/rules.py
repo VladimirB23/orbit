@@ -4,7 +4,14 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from orbit.domain.enums import CLOSED_STATUSES, Actor, Priority, Status
+from orbit.domain.enums import (
+    CLOSED_STATUSES,
+    COMMITTED_STATUSES,
+    Actor,
+    Entity,
+    Priority,
+    Status,
+)
 from orbit.domain.errors import ValidationError
 
 
@@ -107,6 +114,38 @@ def next_done_at(
     if new is not Status.DONE:
         return None
     return current if old is Status.DONE and current is not None else now
+
+
+TASK_DAYS = {
+    Priority.URGENT: 1,
+    Priority.HIGH: 3,
+    Priority.MEDIUM: 7,
+    Priority.NONE: 7,
+    Priority.LOW: 14,
+}
+MILESTONE_DAYS = 14
+PROJECT_DAYS = 30
+
+
+def default_due(
+    entity: Entity,
+    priority: Priority,
+    start: date | None,
+    today: date,
+    limits: Iterable[date | None],
+) -> date:
+    """A deadline nobody had to think of; not later than what the thing is a part of."""
+    days = {Entity.PROJECT: PROJECT_DAYS, Entity.MILESTONE: MILESTONE_DAYS}.get(
+        entity, TASK_DAYS[priority]
+    )
+    begin = max(today, start or today)
+    due = begin + timedelta(days=days)
+    return min([due, *(limit for limit in limits if limit is not None and limit >= begin)])
+
+
+def is_promise(old: Status | None, new: Status) -> bool:
+    """Whether a row has just become planned or running, out of an idea or a pause."""
+    return new in COMMITTED_STATUSES and old not in COMMITTED_STATUSES | {Status.BLOCKED}
 
 
 def parse_status(value: str) -> Status:

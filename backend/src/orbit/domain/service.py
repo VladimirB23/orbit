@@ -21,6 +21,7 @@ from orbit.db.models import (
     SESSION_TITLE_MAX,
     SUMMARY_MAX,
     Base,
+    Commit,
     Event,
     Milestone,
     Project,
@@ -28,14 +29,17 @@ from orbit.db.models import (
     WorkSession,
 )
 from orbit.domain.clock import Clock, SystemClock
-from orbit.domain.enums import CLOSED_STATUSES, Action, Actor, Entity, Status
+from orbit.domain.commits import CommitImport, CommitRecord
+from orbit.domain.enums import CLOSED_STATUSES, Action, Actor, Entity, Priority, Status
 from orbit.domain.errors import ConflictError, NotFoundError, ValidationError
 from orbit.domain.rules import (
     Actual,
     actual_span,
     canceled_out,
+    default_due,
     earliest_sign,
     is_overdue,
+    is_promise,
     is_upcoming,
     milestone_progress,
     next_done_at,
@@ -309,10 +313,18 @@ class StatusReport:
 
 
 class Orbit:
-    def __init__(self, session: Session, actor: Actor, clock: Clock | None = None) -> None:
+    def __init__(
+        self,
+        session: Session,
+        actor: Actor,
+        clock: Clock | None = None,
+        *,
+        auto_dates: bool = False,
+    ) -> None:
         self.session = session
         self.actor = actor
         self.clock: Clock = clock or SystemClock()
+        self.auto_dates = auto_dates
         # Events of one instance are one action for undo; None: not for undo.
         self.batch: str | None = uuid4().hex
         self.undoes: str | None = None
@@ -327,11 +339,13 @@ class Orbit:
         field: str | None = None,
         old: Any = None,
         new: Any = None,
+        *,
+        actor: Actor | None = None,
     ) -> None:
         self.session.add(
             Event(
                 at=self.clock.now(),
-                actor=self.actor.value,
+                actor=(actor or self.actor).value,
                 entity=entity.value,
                 entity_id=entity_id,
                 action=action.value,
@@ -408,6 +422,8 @@ class Orbit:
         self.session.flush()
         self.log(entity, row.id, Action.CREATE, new=json.dumps(snapshot(row), ensure_ascii=False))
         self.session.flush()
+        if is_promise(None, Status(row.status)):
+            self._auto_due(entity, row)
         return row
 
     def _apply[R: Project | Milestone | Task](
@@ -431,6 +447,7 @@ class Orbit:
         validate(row, diff)
 
         now = self.clock.now()
+        promised = "status" in diff and is_promise(Status(row.status), Status(diff["status"]))
         if "status" in diff:
             row.done_at = next_done_at(Status(row.status), Status(diff["status"]), row.done_at, now)
         for key, value in diff.items():
@@ -438,7 +455,30 @@ class Orbit:
             setattr(row, key, value)
         row.updated_at = now
         self.session.flush()
+        if promised and "due_date" not in changes:  # "no date" said aloud is an answer too
+            self._auto_due(entity, row)
         return row
+
+    def _auto_due(self, entity: Entity, row: Project | Milestone | Task) -> None:
+        """Part of the same action, but signed by the system: nobody chose this date."""
+        if not self.auto_dates or row.due_date is not None:
+            return
+        above: list[Project | Milestone | Task | None] = []
+        if not isinstance(row, Project):
+            above.append(self.session.get(Project, row.project_id))
+        if isinstance(row, Task):
+            above.append(self.session.get(Milestone, row.milestone_id or 0))
+            above.append(self.session.get(Task, row.parent_id or 0))
+        due = default_due(
+            entity,
+            Priority.NONE if isinstance(row, Milestone) else Priority(row.priority),
+            row.start_date,
+            self.clock.today(),
+            [owner.due_date for owner in above if owner is not None],
+        )
+        self.log(entity, row.id, Action.UPDATE, "due_date", None, due, actor=Actor.SYSTEM)
+        row.due_date = due
+        self.session.flush()
 
     def delete_row(self, entity: Entity, row: Base, row_id: int) -> None:
         self.log(entity, row_id, Action.DELETE, old=json.dumps(snapshot(row), ensure_ascii=False))
@@ -871,6 +911,30 @@ class Orbit:
                 result.unchanged += 1
         self.session.flush()
         return result
+
+    # --- commits ----------------------------------------------------------------
+
+    def import_commits(self, slug: str, records: Iterable[CommitRecord]) -> CommitImport:
+        """What git has now replaces what was known: history can be rewritten."""
+        project = self.get_project(slug)
+        fresh = {record.sha: record for record in records}
+        known = {
+            row.sha: row
+            for row in self.session.scalars(select(Commit).where(Commit.project_id == project.id))
+        }
+        for sha, row in known.items():
+            if sha not in fresh:
+                self.session.delete(row)
+        added = [record for sha, record in fresh.items() if sha not in known]
+        self.session.add_all(
+            Commit(project_id=project.id, sha=r.sha, committed_at=r.committed_at) for r in added
+        )
+        self.session.flush()
+        return CommitImport(
+            added=len(added),
+            removed=len(known.keys() - fresh.keys()),
+            unchanged=len(known.keys() & fresh.keys()),
+        )
 
     # --- status report --------------------------------------------------------
 

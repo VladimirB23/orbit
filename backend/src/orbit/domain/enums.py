@@ -14,6 +14,8 @@ class Status(StrEnum):
 
 
 CLOSED_STATUSES = frozenset({Status.DONE, Status.CANCELED})
+# Promised: such a thing has a deadline. An idea or a paused thing promises nothing.
+COMMITTED_STATUSES = frozenset({Status.PLANNED, Status.IN_PROGRESS})
 
 
 class Priority(IntEnum):

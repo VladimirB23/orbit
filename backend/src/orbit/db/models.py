@@ -2,7 +2,17 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, MetaData, String, Text
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Index,
+    Integer,
+    MetaData,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from orbit.db.types import UTCDateTime
@@ -154,3 +164,15 @@ class WorkSession(Base):
     files: Mapped[int] = mapped_column(Integer)
     commits: Mapped[int] = mapped_column(Integer)
     folder: Mapped[str | None] = mapped_column(String(500))
+
+
+class Commit(Base):
+    """A commit of the project folder, read from git: a fact like a session."""
+
+    __tablename__ = "commits"
+    __table_args__ = (UniqueConstraint("project_id", "sha"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    sha: Mapped[str] = mapped_column(String(64))
+    committed_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)

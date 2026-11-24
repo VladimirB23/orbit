@@ -197,6 +197,15 @@ def sessions(rows: list[dict[str, Any]]) -> None:
     out.print(table)
 
 
+def commit_import(data: dict[str, Any]) -> None:
+    out = console()
+    for slug, done in data["projects"].items():
+        total = done["added"] + done["unchanged"]
+        out.print(f"{slug}: {total} commits, {done['added']} new, {done['removed']} gone")
+    if data["not_repositories"]:
+        out.print(f"not git repositories: {', '.join(data['not_repositories'])}")
+
+
 def session_import(data: dict[str, Any]) -> None:
     out = console()
     out.print(f"added {data['added']}, updated {data['updated']}, unchanged {data['unchanged']}")

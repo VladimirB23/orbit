@@ -22,17 +22,20 @@ from orbit.config import (
     DEFAULT_DB_PATH,
     DEFAULT_PORT,
     DEMO_DB_PATH,
+    is_demo,
     load_settings,
     settings_file,
 )
 from orbit.db.backup import auto_backup, backup_dir, copy_database
 from orbit.db.engine import current_revision, ensure_schema, head_revision, make_engine
-from orbit.db.models import Event, Milestone, Project, Task, WorkSession
+from orbit.db.models import Commit, Event, Milestone, Project, Task, WorkSession
 from orbit.domain import undo
+from orbit.domain.commits import CommitRecord
 from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, OrbitError, ValidationError
 from orbit.domain.rules import actor_from_env, is_overdue
 from orbit.domain.service import Orbit
+from orbit.gitlog import local_folder, read_commits
 from orbit.journal import read_journals
 from orbit.seed import seed_demo
 
@@ -46,11 +49,13 @@ project_app = typer.Typer(help="Projects (addressed by slug).", no_args_is_help=
 milestone_app = typer.Typer(help="Milestones (addressed by id).", no_args_is_help=True)
 task_app = typer.Typer(help="Tasks (addressed by id).", no_args_is_help=True)
 session_app = typer.Typer(help="Claude sessions from the journals.", no_args_is_help=True)
+commit_app = typer.Typer(help="Commits of the project folders.", no_args_is_help=True)
 db_app = typer.Typer(help="Database maintenance.", no_args_is_help=True)
 app.add_typer(project_app, name="project")
 app.add_typer(milestone_app, name="milestone")
 app.add_typer(task_app, name="task")
 app.add_typer(session_app, name="session")
+app.add_typer(commit_app, name="commit")
 app.add_typer(db_app, name="db")
 
 EXIT_CODES: dict[type[OrbitError], tuple[int, str]] = {
@@ -101,11 +106,12 @@ def root(
 def open_orbit(path: Path) -> Iterator[Orbit]:
     """One command = one transaction: commit on success, roll back on any error."""
     actor = actor_from_env(os.environ)
+    settings = load_settings(path, os.environ)
     engine = make_engine(path)
     try:
         ensure_schema(engine)
         with Session(engine) as session:
-            yield Orbit(session, actor=actor)
+            yield Orbit(session, actor=actor, auto_dates=settings.auto_dates)
             session.commit()
     finally:
         engine.dispose()
@@ -618,6 +624,31 @@ def session_list(
     execute(ctx, json_out, action, render.sessions)
 
 
+# --- commits ------------------------------------------------------------------
+
+
+@commit_app.command("import")
+def commit_import(ctx: typer.Context, json_out: JsonOpt = False) -> None:
+    """Read commits from git of every project folder (orbit serve also does it itself)."""
+
+    def action(o: Orbit) -> dict[str, Any]:
+        done: dict[str, Any] = {}
+        strange: list[str] = []
+        for project in o.list_projects(include_archived=True):
+            if project.repo_path is None:
+                continue
+            folder = local_folder(project.repo_path)
+            commits = read_commits(folder) if folder else None
+            if commits is None:
+                strange.append(project.slug)
+                continue
+            records = [CommitRecord(sha, at) for sha, at in commits]
+            done[project.slug] = asdict(o.import_commits(project.slug, records))
+        return {"projects": done, "not_repositories": strange}
+
+    execute(ctx, json_out, action, render.commit_import)
+
+
 # --- server -------------------------------------------------------------------
 # FastAPI is imported only here: every other command stays fast.
 
@@ -668,11 +699,14 @@ def serve(
         typer.echo(f"backup: {copied}")
     typer.echo(f"orbit with {db.name}: {url} (Ctrl+C to stop)")
     try:
-        vault = load_settings(db, os.environ).vault
+        settings = load_settings(db, os.environ)
     except OrbitError as exc:
         fail(exc, json_out=False)
         return
-    run_server(create_app(db, vault=vault), port, on_ready=lambda: open_ and webbrowser.open(url))
+    server = create_app(
+        db, vault=settings.vault, auto_dates=settings.auto_dates, repos=not is_demo(db)
+    )
+    run_server(server, port, on_ready=lambda: open_ and webbrowser.open(url))
 
 
 @app.command()
@@ -719,7 +753,7 @@ def db_info(ctx: typer.Context, json_out: JsonOpt = False) -> None:
         engine = o.session.get_bind()
         counts = {
             model.__tablename__: o.session.scalar(select(func.count()).select_from(model)) or 0
-            for model in (Project, Milestone, Task, Event, WorkSession)
+            for model in (Project, Milestone, Task, Event, WorkSession, Commit)
         }
         vault = load_settings(ctx.obj.db, os.environ).vault
         return {

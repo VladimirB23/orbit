@@ -16,3 +16,4 @@ class AppState:
     clock: Clock
     feed: ChangeFeed
     vault: Path | None = None
+    auto_dates: bool = False

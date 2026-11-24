@@ -233,7 +233,8 @@ def _value(owner: Any, name: str, text: str | None) -> Any:
 
 
 def _describe(orbit: Orbit, events: Sequence[Event]) -> Undone:
-    last = events[0]  # for a deleted branch: its root
+    own = [e for e in events if e.actor == orbit.actor.value]  # without automatic dates
+    last = (own or events)[0]  # for a deleted branch: its root
     row = _find(orbit, last)
     saved = snapshot(row) if row else json.loads(last.new_value or last.old_value or "{}")
     touched = {(e.entity, e.entity_id) for e in events}

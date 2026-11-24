@@ -11,7 +11,7 @@ from orbit.api import schemas as s
 from orbit.api.errors import ERROR_RESPONSES
 from orbit.api.paths import API_V1
 from orbit.api.state import AppState
-from orbit.config import DEMO_DB_PATH
+from orbit.config import is_demo
 from orbit.db.models import COMMENT_MAX, SUMMARY_MAX
 from orbit.domain import undo
 from orbit.domain.enums import Actor, Entity
@@ -33,7 +33,7 @@ def get_orbit(state: StateDep) -> Iterator[Orbit]:
     interface belongs to Vladimir even when the server was started by Claude.
     """
     with Session(state.engine, expire_on_commit=False) as session:
-        yield Orbit(session, actor=Actor.VLADIMIR, clock=state.clock)
+        yield Orbit(session, actor=Actor.VLADIMIR, clock=state.clock, auto_dates=state.auto_dates)
         session.commit()
 
 
@@ -49,9 +49,7 @@ Force = Annotated[bool, Query(description="Allow closing or deleting with open c
 def meta(state: StateDep) -> s.MetaOut:
     return s.MetaOut(
         version=__version__,
-        database=s.DatabaseOut(
-            name=state.db.name, demo=state.db.name.startswith(DEMO_DB_PATH.stem)
-        ),
+        database=s.DatabaseOut(name=state.db.name, demo=is_demo(state.db)),
         limits=s.LimitsOut(
             name=NAME_MAX, title=TITLE_MAX, summary=SUMMARY_MAX, comment=COMMENT_MAX
         ),

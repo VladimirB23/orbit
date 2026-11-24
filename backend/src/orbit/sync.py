@@ -1,15 +1,18 @@
-"""Keeps the sessions table in step with the journals while the server runs."""
+"""Keeps sessions and commits in step with the journals and git while the server runs."""
 
 import asyncio
 import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from orbit.domain.commits import CommitRecord
 from orbit.domain.enums import Actor
 from orbit.domain.service import Orbit
 from orbit.domain.sessions import SessionImport
+from orbit.gitlog import fingerprint, local_folder, read_commits
 from orbit.journal import journal_files, read_journals
 
 INTERVAL_SECONDS = 15.0
@@ -19,13 +22,40 @@ log = logging.getLogger(__name__)
 Signature = tuple[frozenset[tuple[Path, int, int]], frozenset[str]]
 
 
-class JournalSync:
-    """Reads the vault, writes only to the database, and only when something has changed."""
+class Sync(ABC):
+    """Looks at the outside world now and then, writes only to the database."""
+
+    what = ""
+
+    def __init__(self, engine: Engine, interval: float = INTERVAL_SECONDS) -> None:
+        self._engine = engine
+        self._interval = interval
+
+    @abstractmethod
+    def sync(self) -> object:
+        """One round; cheap when nothing has changed."""
+
+    async def run(self, stop: asyncio.Event) -> None:
+        while not stop.is_set():
+            try:
+                await asyncio.to_thread(self.sync)
+            except Exception:  # a locked or half-written file: the next round will see it
+                log.warning("%s were not read, will try again", self.what, exc_info=True)
+            try:
+                async with asyncio.timeout(self._interval):
+                    await stop.wait()
+            except TimeoutError:
+                pass
+
+
+class JournalSync(Sync):
+    """Reads the vault, and only when something has changed there."""
+
+    what = "session journals"
 
     def __init__(self, engine: Engine, vault: Path, interval: float = INTERVAL_SECONDS) -> None:
-        self._engine = engine
+        super().__init__(engine, interval)
         self._vault = vault
-        self._interval = interval
         self._seen: Signature | None = None
 
     def _look(self, orbit: Orbit) -> Signature:
@@ -48,14 +78,32 @@ class JournalSync:
         self._seen = current
         return result
 
-    async def run(self, stop: asyncio.Event) -> None:
-        while not stop.is_set():
-            try:
-                await asyncio.to_thread(self.sync)
-            except Exception:  # a locked or half-written file: the next round will see it
-                log.warning("session journals were not read, will try again", exc_info=True)
-            try:
-                async with asyncio.timeout(self._interval):
-                    await stop.wait()
-            except TimeoutError:
-                pass
+
+class RepoSync(Sync):
+    """Reads git of the project folders; a folder that is away keeps what is known of it."""
+
+    what = "commits"
+
+    def __init__(self, engine: Engine, interval: float = INTERVAL_SECONDS) -> None:
+        super().__init__(engine, interval)
+        self._seen: dict[str, object] = {}
+
+    def sync(self) -> dict[str, int]:
+        """Projects that were read again, with the number of their commits."""
+        done: dict[str, int] = {}
+        with Session(self._engine) as session:
+            orbit = Orbit(session, actor=Actor.SYSTEM)
+            for project in orbit.list_projects(include_archived=True):
+                slug, folder = project.slug, local_folder(project.repo_path)
+                if folder is None:
+                    continue
+                current = (project.id, folder, fingerprint(folder))
+                if self._seen.get(slug) == current:
+                    continue
+                commits = read_commits(folder)
+                if commits is not None:
+                    orbit.import_commits(slug, [CommitRecord(sha, at) for sha, at in commits])
+                    session.commit()
+                    done[slug] = len(commits)
+                self._seen[slug] = current
+        return done
