@@ -31,8 +31,11 @@
   --blocked: #8836a3;
   --blocked-wash: #f5e8f9;
   --done: #147a5c;
+  --done-wash: #dff1ea;
   --planned: #2f62c4;
+  --planned-wash: #e5edfb;
   --idle: #64708c;
+  --idle-wash: #eaeef4;
 
   --radius: 0.5rem;
   color-scheme: light;
@@ -64,8 +67,11 @@
   --blocked: #dc9cf0;
   --blocked-wash: #3a2748;
   --done: #5fcfa8;
+  --done-wash: #1a3a3a;
   --planned: #8db4ff;
+  --planned-wash: #203763;
   --idle: #8c9bb9;
+  --idle-wash: #26324f;
   color-scheme: dark;
 }
 
@@ -102,8 +108,11 @@
   --color-blocked: var(--blocked);
   --color-blocked-wash: var(--blocked-wash);
   --color-done: var(--done);
+  --color-done-wash: var(--done-wash);
   --color-planned: var(--planned);
+  --color-planned-wash: var(--planned-wash);
   --color-idle: var(--idle);
+  --color-idle-wash: var(--idle-wash);
 
   --radius-sm: calc(var(--radius) - 3px);
   --radius-md: calc(var(--radius) - 1px);
@@ -206,6 +215,80 @@
     position: absolute;
     clip-path: inset(50%);
   }
+}
+
+/* The timeline: names stay on the left, time scrolls under them. */
+.timeline {
+  container: timeline / inline-size;
+}
+.timeline-body {
+  --names: 25rem;
+}
+.timeline-names {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem;
+  align-items: center;
+  flex: none;
+  width: var(--names);
+}
+.zoom-narrow {
+  display: none;
+}
+/* Names are short of room: numbers only, the words are in the hint and for screen readers. */
+.timeline .chip-word {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@container timeline (max-width: 74rem) {
+  .timeline-body {
+    --names: 20rem;
+    --indent: 1.1rem;
+  }
+}
+@container timeline (max-width: 52rem) {
+  .timeline-body {
+    --names: 11.5rem;
+    --indent: 0.5rem;
+  }
+  .zoom-wide {
+    display: none;
+  }
+  .zoom-narrow {
+    display: flex;
+  }
+  .timeline-names {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .timeline-names > :not(:first-child) {
+    display: none;
+  }
+}
+/* Days off: the scale starts on a Monday, so the stripe repeats by itself. */
+.timeline-grid {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(
+      to right,
+      transparent calc(5 * var(--day)),
+      color-mix(in srgb, var(--raised) 60%, transparent) calc(5 * var(--day))
+    );
+  background-size:
+    calc(var(--step) * var(--day)) 100%,
+    calc(7 * var(--day)) 100%;
+}
+.bar-late {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--danger) 0 1.5px,
+    var(--danger-wash) 1.5px 6px
+  );
+}
+.bar-open {
+  mask-image: linear-gradient(to right, #000 calc(100% - min(1.75rem, 60%)), transparent);
 }
 
 [data-sonner-toaster] {

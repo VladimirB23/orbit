@@ -86,8 +86,8 @@ export type Zoom = (typeof ZOOMS)[number];
 export const isZoom = (value: unknown): value is Zoom => ZOOMS.includes(value as Zoom);
 
 const PX: Record<Zoom, number> = { days: 44, weeks: 20, months: 6 };
-/** Empty room around the dates, to have somewhere to drag to. */
-const ROOM: Record<Zoom, number> = { days: 21, weeks: 35, months: 120 };
+/** Empty room after the dates, to plan ahead; half as much before them. */
+const ROOM: Record<Zoom, number> = { days: 42, weeks: 84, months: 270 };
 /** A date with a mistyped year must not make the screen a kilometre long. */
 const HORIZON = 730;
 
@@ -114,7 +114,7 @@ export function makeScale(dates: Day[], today: Day, zoom: Zoom, viewWidth: numbe
     last = latest(last, earliest(day, ceiling));
   }
   const px = PX[zoom];
-  const from = monday(addDays(first, -ROOM[zoom]));
+  const from = monday(addDays(first, -ROOM[zoom] / 2));
   const needed = Math.max(dayDiff(last, from) + ROOM[zoom], Math.ceil(viewWidth / px));
   const days = Math.ceil(needed / 7) * 7;
   return {

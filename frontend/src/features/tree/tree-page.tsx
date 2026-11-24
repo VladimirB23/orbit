@@ -8,10 +8,13 @@ import { ItemPanel, useEscape } from '@/features/item/item-panel';
 import { places } from '@/features/item/places';
 import { useEdit } from '@/features/item/use-edit';
 import { NewProjectDialog } from '@/features/project/new-project-dialog';
+import { TimelineView } from '@/features/timeline/timeline-view';
 import { useAppEvents } from '@/lib/app-events';
+import { toDay } from '@/lib/dates';
 import { openExternal } from '@/lib/external';
 import { asBoolean, asStrings, usePersisted } from '@/lib/persisted';
 import { isClosed } from '@/lib/status';
+import { isZoom, type Zoom } from '@/lib/timeline';
 import {
   ancestorsOf,
   buildItems,
@@ -27,10 +30,12 @@ import {
 import type { TreeSearch } from '@/router';
 import { focusRow, focusRowSoon } from './focus';
 import { FilterMenu, SearchField, SummaryBar } from './toolbar';
-import { type TreeUi, TreeView } from './tree-view';
+import { TreeView } from './tree-view';
 import type { RowActions } from './types';
 import { useFlash } from './use-flash';
+import type { TreeUi } from './use-row-keys';
 
+const asZoom = (value: unknown): Zoom => (isZoom(value) ? value : 'weeks');
 const NO_TOGGLES: ReadonlySet<NodeKey> = new Set();
 
 function flip(set: ReadonlySet<NodeKey>, key: NodeKey): Set<NodeKey> {
@@ -53,6 +58,8 @@ export function TreePage() {
   const [expandedList, setExpandedList] = usePersisted<string[]>('orbit.expanded', [], asStrings);
   const expanded = useMemo(() => new Set(expandedList as NodeKey[]), [expandedList]);
   const [toggled, setToggled] = useState(NO_TOGGLES);
+  const [zoom, setZoom] = usePersisted<Zoom>('orbit.zoom', 'weeks', asZoom);
+  const onTimeline = search.screen === 'timeline';
 
   const filter = useMemo<Filter>(
     () => ({
@@ -162,9 +169,12 @@ export function TreePage() {
     complete: (item) =>
       void edit.edit(item, { status: isClosed(item.status) ? 'in_progress' : 'done' }),
     save: edit.edit,
+    reschedule: (item, changes) =>
+      edit.reschedule(item, changes, tree.data?.today ?? toDay(new Date())),
     startEdit: (item, cell) => {
       const column = document.querySelector<HTMLElement>('.tree-grid > .col-note');
-      if (cell === 'note' && column && column.offsetParent === null) return open(item);
+      // No column for the comment here: it is edited in the panel.
+      if (cell === 'note' && !column?.offsetParent) return open(item);
       setUi((state) => ({ ...state, active: item.key, editing: { key: item.key, cell } }));
     },
     stopEdit: (item, refocus) => {
@@ -228,6 +238,30 @@ export function TreePage() {
   const projects = items.map(({ slug, title }) => ({ slug, title }));
   const project = selectedItem && items.find((item) => item.slug === selectedItem.slug);
 
+  const view = {
+    rows,
+    today: tree.data.today,
+    limits,
+    ui: { ...ui, selected: selectedItem?.key ?? null },
+    flashing,
+    actions,
+    onAddClose: () => setUi((state) => ({ ...state, adding: null })),
+    empty:
+      items.length === 0 && !isFiltering(filter) ? (
+        <Message title="Пока нет ни одного проекта">
+          <p>Создай первый, а этапы и задачи добавишь внутри него.</p>
+          <Button onClick={() => setCreating(true)}>Новый проект</Button>
+        </Message>
+      ) : (
+        <Message title="Ничего не нашлось">
+          <p>Под выбранные условия не подходит ни один пункт.</p>
+          <Button variant="outline" onClick={reset}>
+            Сбросить фильтры
+          </Button>
+        </Message>
+      ),
+  };
+
   return (
     <div className="flex min-h-0 flex-1">
       <main className="flex min-w-0 flex-1 flex-col">
@@ -245,30 +279,16 @@ export function TreePage() {
             />
           </div>
         </div>
-        <TreeView
-          rows={rows}
-          today={tree.data.today}
-          limits={limits}
-          ui={{ ...ui, selected: selectedItem?.key ?? null }}
-          flashing={flashing}
-          actions={actions}
-          onAddClose={() => setUi((state) => ({ ...state, adding: null }))}
-          empty={
-            items.length === 0 && !isFiltering(filter) ? (
-              <Message title="Пока нет ни одного проекта">
-                <p>Создай первый, а этапы и задачи добавишь внутри него.</p>
-                <Button onClick={() => setCreating(true)}>Новый проект</Button>
-              </Message>
-            ) : (
-              <Message title="Ничего не нашлось">
-                <p>Под выбранные условия не подходит ни один пункт.</p>
-                <Button variant="outline" onClick={reset}>
-                  Сбросить фильтры
-                </Button>
-              </Message>
-            )
-          }
-        />
+        {onTimeline ? (
+          <TimelineView
+            {...view}
+            items={items}
+            zoom={zoom}
+            onZoom={(next) => setZoom(() => next)}
+          />
+        ) : (
+          <TreeView {...view} />
+        )}
       </main>
       {selectedItem && project && (
         <ItemPanel

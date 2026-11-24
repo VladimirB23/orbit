@@ -1,6 +1,6 @@
 /** Frame around every screen: header, notifications, global shortcuts. */
-import { Outlet } from '@tanstack/react-router';
-import { Keyboard, Monitor, Moon, Plus, Search, Sun } from 'lucide-react';
+import { Link, Outlet, useNavigate, useSearch } from '@tanstack/react-router';
+import { ChartGantt, Keyboard, ListTree, Monitor, Moon, Plus, Search, Sun } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { type LiveState, useLiveUpdates } from '@/api/live';
@@ -27,6 +27,7 @@ export function AppShell() {
   const [help, setHelp] = useState(false);
   const [palette, setPalette] = useState(false);
   const openHelp = useCallback(() => setHelp(true), []);
+  const switchScreen = useSwitchScreen();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -40,6 +41,7 @@ export function AppShell() {
         '/': () => document.getElementById('search')?.focus(),
         '?': () => setHelp(true),
         p: emitNewProject,
+        g: switchScreen,
       };
       const action = run[hotkey(event) ?? ''];
       if (!action) return;
@@ -48,7 +50,7 @@ export function AppShell() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [switchScreen]);
 
   return (
     <div className="flex h-dvh flex-col">
@@ -62,6 +64,7 @@ export function AppShell() {
             Демо<span className="max-sm:sr-only">: данные вымышлены</span>
           </span>
         )}
+        <ScreenSwitch />
         <div className="ml-auto flex items-center gap-1">
           <LiveMark state={live} />
           <Button
@@ -116,6 +119,47 @@ export function AppShell() {
         }}
       />
     </div>
+  );
+}
+
+function useSwitchScreen() {
+  const navigate = useNavigate();
+  return useCallback(
+    () =>
+      void navigate({
+        to: '/',
+        search: (now) => ({ ...now, screen: now.screen ? undefined : 'timeline' }),
+      }),
+    [navigate],
+  );
+}
+
+/** Two looks at the same rows: filters and the open panel stay. */
+function ScreenSwitch() {
+  const { screen } = useSearch({ strict: false });
+  const screens = [
+    { value: undefined, label: 'Дерево', Icon: ListTree },
+    { value: 'timeline' as const, label: 'Таймлайн', Icon: ChartGantt },
+  ];
+  return (
+    <nav aria-label="Экран" className="flex overflow-hidden rounded-lg border border-border">
+      {screens.map(({ value, label, Icon }) => (
+        <Link
+          key={label}
+          to="/"
+          search={(now) => ({ ...now, screen: value })}
+          aria-current={screen === value ? 'page' : undefined}
+          title={`${label} (G)`}
+          className={cn(
+            'flex h-7.5 items-center gap-1.5 px-2.5 text-muted-foreground text-sm hover:text-foreground',
+            screen === value && 'bg-selected font-medium text-foreground',
+          )}
+        >
+          <Icon aria-hidden="true" className="size-4" />
+          <span className="max-md:sr-only">{label}</span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 

@@ -1,4 +1,5 @@
 import type { Changes } from '@/api/patch';
+import type { DateChanges } from '@/lib/timeline';
 import type { NodeKey, TreeItem } from '@/lib/tree';
 
 export type CellMenu = 'status' | 'start' | 'due' | 'actions';
@@ -12,6 +13,8 @@ export interface RowActions {
   open: (item: TreeItem) => void;
   complete: (item: TreeItem) => void;
   save: (item: TreeItem, changes: Changes) => Promise<boolean>;
+  /** New dates from the timeline, with a way back. */
+  reschedule: (item: TreeItem, changes: DateChanges) => Promise<boolean>;
   startEdit: (item: TreeItem, cell: TextCell) => void;
   stopEdit: (item: TreeItem, refocus: boolean) => void;
   setMenu: (item: TreeItem, menu: CellMenu | null) => void;

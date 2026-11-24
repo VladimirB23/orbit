@@ -4,6 +4,8 @@ import { isStatus } from './status';
 import { VIEWS, type View } from './tree';
 
 export interface TreeSearch {
+  /** The same rows on a time scale; the tree when absent. */
+  screen?: 'timeline';
   q?: string;
   view?: View;
   status?: Status[];
@@ -15,6 +17,7 @@ export interface TreeSearch {
 
 export function parseTreeSearch(raw: Record<string, unknown>): TreeSearch {
   const result: TreeSearch = {};
+  if (raw.screen === 'timeline') result.screen = 'timeline';
   // The router reads ?q=5 as a number.
   if (typeof raw.q === 'string' || typeof raw.q === 'number') result.q = String(raw.q);
   if (VIEWS.includes(raw.view as View)) result.view = raw.view as View;

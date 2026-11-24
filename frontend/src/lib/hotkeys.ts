@@ -5,6 +5,12 @@ const NAMED: Record<string, string> = {
   Delete: 'delete',
   F2: 'f2',
   Escape: 'escape',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Equal: '+',
+  NumpadAdd: '+',
+  Minus: '-',
+  NumpadSubtract: '-',
 };
 
 const QUIET = [
@@ -28,5 +34,6 @@ export function hotkey(event: KeyboardEvent): string | null {
   const key = letter ?? NAMED[event.code];
   if (key === undefined) return null;
   if (!event.shiftKey) return key;
+  if (key === '+') return key; // Shift+= is how a plus is typed
   return key === '/' ? '?' : `shift+${key}`;
 }

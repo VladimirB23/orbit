@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { BookOpen, CodeXml, Copy, Eye, Keyboard, Plus } from 'lucide-react';
+import { BookOpen, ChartGantt, CodeXml, Copy, Eye, Keyboard, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { useMeta, useTree } from '@/api/queries';
@@ -105,8 +105,21 @@ export function usePaletteCommands(onHelp: () => void): Command[] {
         title: `Показать: ${VIEW_LABEL[view].toLowerCase()}`,
         always: true,
         icon: <Eye />,
-        run: () => void navigate({ search: { view } }),
+        run: () => void navigate({ to: '/', search: { screen: search.screen, view } }),
       })),
+      {
+        ...plain,
+        id: 'screen',
+        title: search.screen ? 'Показать деревом' : 'Показать на таймлайне',
+        keywords: 'гант gantt timeline таймлайн дерево',
+        always: true,
+        icon: <ChartGantt />,
+        run: () =>
+          void navigate({
+            to: '/',
+            search: { ...search, screen: search.screen ? undefined : 'timeline' },
+          }),
+      },
       {
         ...plain,
         id: 'new-project',
@@ -126,5 +139,5 @@ export function usePaletteCommands(onHelp: () => void): Command[] {
       ...all.filter((command) => !command.always),
       ...rest.flatMap((item) => placeCommands(item, vault, false)),
     ];
-  }, [tree, meta, search.item, navigate, onHelp]);
+  }, [tree, meta, search, navigate, onHelp]);
 }

@@ -14,6 +14,14 @@ describe('hotkey', () => {
     expect(press({ code: 'Slash', key: '.' })).toBe('/');
   });
 
+  it('knows the keys of the timeline', () => {
+    expect(press({ code: 'BracketLeft', key: 'х' })).toBe('[');
+    expect(press({ code: 'BracketRight', key: 'ъ' })).toBe(']');
+    expect(press({ code: 'Equal' })).toBe('+');
+    expect(press({ code: 'Equal', shiftKey: true })).toBe('+');
+    expect(press({ code: 'NumpadSubtract' })).toBe('-');
+  });
+
   it('tells Shift combinations apart', () => {
     expect(press({ code: 'KeyN', shiftKey: true })).toBe('shift+n');
     expect(press({ code: 'Slash', shiftKey: true })).toBe('?');

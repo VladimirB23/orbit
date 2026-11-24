@@ -1,12 +1,15 @@
 /** Saving with everything a person expects around it: undo, confirmations, clear errors. */
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '@/api/client';
 import type { Changes } from '@/api/patch';
 import { type Target, useArchiveMutation, useRemoveMutation, useSaveMutation } from '@/api/queries';
 import type { Status } from '@/api/types';
 import { useConfirm } from '@/components/confirm';
+import { formatDay } from '@/lib/dates';
 import { isClosed, STATUS_LABEL } from '@/lib/status';
-import { type TreeItem, walk } from '@/lib/tree';
+import type { DateChanges } from '@/lib/timeline';
+import { type NodeKey, type TreeItem, walk } from '@/lib/tree';
 
 export function errorText(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Не сохранено: неизвестная ошибка';
@@ -21,6 +24,10 @@ export function errorText(error: unknown): string {
 export const targetOf = ({ entity, id, slug }: TreeItem): Target => ({ entity, id, slug });
 export const titleField = (item: TreeItem) => (item.entity === 'task' ? 'title' : 'name');
 export const noteField = (item: TreeItem) => (item.entity === 'task' ? 'comment' : 'summary');
+
+/** Moves of one row closer than this are one move: "undo" returns to where it started. */
+const BURST_MS = 6000;
+type Dates = { start_date: string | null; due_date: string | null };
 
 const isConflict = (error: unknown) => error instanceof ApiError && error.type === 'conflict';
 
@@ -64,6 +71,29 @@ export function useEdit() {
     return true;
   }
 
+  const bursts = useRef(new Map<NodeKey, { at: number; before: Dates }>());
+
+  async function reschedule(item: TreeItem, changes: DateChanges, today: string): Promise<boolean> {
+    const last = bursts.current.get(item.key);
+    const fresh = last !== undefined && Date.now() - last.at < BURST_MS;
+    const before = fresh ? last.before : { start_date: item.startDate, due_date: item.dueDate };
+    bursts.current.set(item.key, { at: Date.now(), before });
+    if (!(await edit(item, { ...changes }))) return false;
+    const days = [changes.start_date ?? item.startDate, changes.due_date ?? item.dueDate];
+    const text = days.flatMap((day) => (day ? formatDay(day, today) : [])).join(' – ');
+    toast(`${text}: ${item.title}`, {
+      id: `dates-${item.key}`,
+      action: {
+        label: 'Вернуть',
+        onClick: () => {
+          bursts.current.delete(item.key);
+          void edit(item, before);
+        },
+      },
+    });
+    return true;
+  }
+
   async function removeItem(item: TreeItem): Promise<boolean> {
     const inside = [...walk(item.children)].length;
     const ok = await confirm({
@@ -96,7 +126,7 @@ export function useEdit() {
     }
   }
 
-  return { edit, removeItem, setArchived };
+  return { edit, reschedule, removeItem, setArchived };
 }
 
 export type Edit = ReturnType<typeof useEdit>;

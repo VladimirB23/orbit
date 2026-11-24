@@ -14,6 +14,11 @@ describe('parseTreeSearch', () => {
     ).toEqual({ q: 'kpi', view: 'overdue', status: ['done'], project: 'orbit', item: 'task-3' });
   });
 
+  it('knows the screen', () => {
+    expect(parseTreeSearch({ screen: 'timeline' })).toEqual({ screen: 'timeline' });
+    expect(parseTreeSearch({ screen: 'else' })).toEqual({});
+  });
+
   it('drops anything unexpected instead of breaking the page', () => {
     expect(
       parseTreeSearch({
