@@ -1,13 +1,14 @@
 import { ArrowLeft, ArrowRight, CircleDashed } from 'lucide-react';
 import { useState } from 'react';
 import type { Meta } from '@/api/types';
-import { DateField } from '@/components/fields/date-field';
 import { StatusMenu } from '@/components/fields/status-menu';
+import { Cell, type MenuState } from '@/features/tree/cells';
 import { focusRow } from '@/features/tree/focus';
-import { ActionsMenu, cellButton, DateText, dueTone, TitleCell } from '@/features/tree/row-parts';
+import { ActionsMenu, TitleCell } from '@/features/tree/row-parts';
 import type { CellMenu, RowActions, TextCell } from '@/features/tree/types';
-import { type Day, dueHint, formatDay } from '@/lib/dates';
-import { isClosed, STATUS_LABEL } from '@/lib/status';
+import type { Column } from '@/lib/columns';
+import { type Day, formatDay } from '@/lib/dates';
+import { STATUS_LABEL } from '@/lib/status';
 import { grips, laneItems, pack, type Scale, spanOf, withDates } from '@/lib/timeline';
 import type { Row, TreeItem } from '@/lib/tree';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ import { useOutOfSight, type Viewport } from './use-viewport';
 
 interface Props {
   row: Row;
+  columns: Column[];
   today: Day;
   limits: Meta['limits'];
   active: boolean;
@@ -37,11 +39,11 @@ interface Props {
 const MIN_HEIGHT = { project: 44, milestone: 38, task: 34 } as const;
 
 export function TimelineRow(props: Props) {
-  const { row, today, limits, active, selected, flash, editing, menu, actions } = props;
+  const { row, columns, today, limits, active, selected, flash, editing, menu, actions } = props;
   const { item } = row;
   const tab = active ? 0 : -1;
-  const closed = isClosed(item.status);
-  const menuProps = (name: CellMenu) => ({
+  const statusShown = columns.some(({ id }) => id === 'status');
+  const menuProps = (name: CellMenu): MenuState => ({
     open: menu === name,
     onOpenChange: (open: boolean) => actions.setMenu(item, open ? name : null),
     onCloseAutoFocus: (event: Event) => {
@@ -84,43 +86,32 @@ export function TimelineRow(props: Props) {
           actions={actions}
           overlay={
             <>
-              <StatusMenu
-                value={item.status}
-                onChange={(status) => void actions.save(item, { status })}
-                {...menuProps('status')}
-              >
-                <button
-                  type="button"
-                  tabIndex={tab}
-                  aria-label={`Статус: ${STATUS_LABEL[item.status]}`}
-                  title={`Статус: ${STATUS_LABEL[item.status]}`}
-                  className="grid size-7 place-items-center rounded-md text-faint opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100"
-                >
-                  <CircleDashed className="size-4" />
-                </button>
-              </StatusMenu>
+              {!statusShown && (
+                <span data-cell="status">
+                  <StatusMenu
+                    value={item.status}
+                    onChange={(status) => void actions.save(item, { status })}
+                    {...menuProps('status')}
+                  >
+                    <button
+                      type="button"
+                      tabIndex={tab}
+                      aria-label={`Статус: ${STATUS_LABEL[item.status]}`}
+                      title={`Статус: ${STATUS_LABEL[item.status]}`}
+                      className="grid size-7 place-items-center rounded-md text-faint opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 data-[state=open]:opacity-100"
+                    >
+                      <CircleDashed className="size-4" />
+                    </button>
+                  </StatusMenu>
+                </span>
+              )}
               <ActionsMenu item={item} tab={tab} menu={menu} actions={actions} />
             </>
           }
         />
-        <div role="gridcell" className="due-cell">
-          <DateField
-            label="Срок"
-            value={item.dueDate}
-            today={today}
-            onChange={(day) => void actions.save(item, { due_date: day })}
-            {...menuProps('due')}
-          >
-            <button
-              type="button"
-              tabIndex={tab}
-              title={item.dueDate && !closed ? dueHint(item.dueDate, today) : undefined}
-              className={cn(cellButton, 'text-sm')}
-            >
-              <DateText day={item.dueDate} today={today} empty="срок" tone={dueTone(item)} />
-            </button>
-          </DateField>
-        </div>
+        {columns.map(({ id }) => (
+          <Cell key={id} id={id} {...{ item, today, limits, tab, editing, menuProps, actions }} />
+        ))}
       </div>
       <Track {...props} tab={tab} />
     </div>

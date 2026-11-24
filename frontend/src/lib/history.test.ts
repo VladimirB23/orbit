@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OrbitEvent } from '@/api/types';
-import { describeEvent, groupEvents } from './history';
+import { describeEvent, groupEvents, undoneText } from './history';
 
 const event = (patch: Partial<OrbitEvent>): OrbitEvent => ({
   id: 1,
@@ -75,5 +75,18 @@ describe('groupEvents', () => {
       ['vladimir', [2]],
       ['vladimir', [1]],
     ]);
+  });
+});
+
+describe('undoneText', () => {
+  const base = { entity: 'task' as const, id: 1, title: 'KPI', fields: [], count: 1 };
+  it.each([
+    [{ action: 'create' as const }, 'добавление «KPI»'],
+    [{ action: 'delete' as const, count: 4 }, 'удаление «KPI» и все внутри (3)'],
+    [{ action: 'update' as const, fields: ['status'] }, 'статус, «KPI»'],
+    [{ action: 'update' as const, fields: ['due_date', 'start_date'] }, 'срок и старт, «KPI»'],
+    [{ action: 'update' as const, fields: ['archived_at'] }, 'перенос в архив или из него, «KPI»'],
+  ])('%j', (undone, text) => {
+    expect(undoneText({ ...base, ...undone })).toBe(text);
   });
 });

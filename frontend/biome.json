@@ -17,6 +17,8 @@
         "src/features/tree/tree-view.tsx",
         "src/features/tree/tree-row.tsx",
         "src/features/tree/row-parts.tsx",
+        "src/features/tree/cells.tsx",
+        "src/features/tree/columns.tsx",
         "src/features/tree/use-row-keys.ts",
         "src/features/timeline/**"
       ],

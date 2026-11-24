@@ -164,25 +164,20 @@
   }
 }
 
-/* The tree reacts to its own width: the side panel narrows it as well as the window does. */
+/* The tree reacts to its own width: the side panel narrows it as well as the window does.
+   Which fields there are and how wide: lib/columns.ts. */
 .tree {
   container: tree / inline-size;
 }
 .tree-grid {
   display: grid;
-  grid-template-columns: minmax(22rem, 1.7fr) 8.5rem 6.75rem 6rem 6.75rem minmax(10rem, 1fr) 2.25rem;
+  grid-template-columns: var(--fields);
   align-items: center;
 }
 .col-status-glyph {
   display: none;
 }
 @container tree (max-width: 74rem) {
-  .tree-grid {
-    grid-template-columns: minmax(20rem, 1.8fr) 8.5rem 6.75rem 6.75rem minmax(8rem, 1fr) 2.25rem;
-  }
-  .col-start {
-    display: none;
-  }
   .chip-word:not(.pulse .chip-word) {
     position: absolute;
     width: 1px;
@@ -192,19 +187,7 @@
     white-space: nowrap;
   }
 }
-@container tree (max-width: 62rem) {
-  .tree-grid {
-    grid-template-columns: minmax(0, 1fr) 8.5rem 6.5rem 6.25rem 2.25rem;
-  }
-  .col-note {
-    display: none;
-  }
-}
 @container tree (max-width: 42rem) {
-  .tree-grid {
-    grid-template-columns: minmax(0, 1fr) 2rem 5rem 2rem;
-  }
-  .col-progress,
   .col-status-text {
     display: none;
   }
@@ -221,12 +204,9 @@
 .timeline {
   container: timeline / inline-size;
 }
-.timeline-body {
-  --names: 25rem;
-}
 .timeline-names {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 5.5rem;
+  grid-template-columns: var(--fields);
   align-items: center;
   flex: none;
   width: var(--names);
@@ -245,13 +225,11 @@
 }
 @container timeline (max-width: 74rem) {
   .timeline-body {
-    --names: 20rem;
     --indent: 1.1rem;
   }
 }
 @container timeline (max-width: 52rem) {
   .timeline-body {
-    --names: 11.5rem;
     --indent: 0.5rem;
   }
   .zoom-wide {
@@ -259,12 +237,6 @@
   }
   .zoom-narrow {
     display: flex;
-  }
-  .timeline-names {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .timeline-names > :not(:first-child) {
-    display: none;
   }
 }
 /* Days off: the scale starts on a Monday, so the stripe repeats by itself. */

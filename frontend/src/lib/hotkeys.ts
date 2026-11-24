@@ -23,13 +23,27 @@ const QUIET = [
   '[role="alertdialog"]',
 ].join(',');
 
+/** A window that is closing still holds the focus for a moment, but the keys are free again. */
+function isQuiet(target: EventTarget | null): boolean {
+  const place = target instanceof Element ? target.closest(QUIET) : null;
+  return place !== null && place.getAttribute('data-state') !== 'closed';
+}
+
 /** Ctrl+K works everywhere, even inside a field: the palette is the way out of it. */
 export const isPaletteKey = (event: KeyboardEvent): boolean =>
   event.code === 'KeyK' && (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
 
+/** Not inside a field or a window: there the browser takes back typed text. */
+export function undoKey(event: KeyboardEvent): 'undo' | 'redo' | null {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.defaultPrevented) return null;
+  if (isQuiet(event.target)) return null;
+  if (event.code === 'KeyZ') return event.shiftKey ? 'redo' : 'undo';
+  return event.code === 'KeyY' && !event.shiftKey ? 'redo' : null;
+}
+
 export function hotkey(event: KeyboardEvent): string | null {
   if (event.ctrlKey || event.altKey || event.metaKey || event.defaultPrevented) return null;
-  if (event.target instanceof Element && event.target.closest(QUIET)) return null;
+  if (isQuiet(event.target)) return null;
   const letter = /^Key([A-Z])$/.exec(event.code)?.[1]?.toLowerCase();
   const key = letter ?? NAMED[event.code];
   if (key === undefined) return null;

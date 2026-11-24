@@ -2,6 +2,7 @@
 import { CircleQuestionMark, LocateFixed, ZoomIn, ZoomOut } from 'lucide-react';
 import type { RefObject } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { type Columns, ColumnsMenu } from '@/features/tree/columns';
 import { type Day, formatDate } from '@/lib/dates';
 import { type Scale, type Tick, ticks, ZOOMS, type Zoom } from '@/lib/timeline';
 import { cn } from '@/lib/utils';
@@ -16,12 +17,16 @@ interface Props {
   onZoom: (zoom: Zoom) => void;
   onToday: () => void;
   onPan: (event: React.PointerEvent<HTMLElement>) => void;
+  columns: Columns;
+  /** The edge of the names. */
+  resizer: React.ReactNode;
 }
 
 const iconButton =
   'grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40';
 
-export function ScaleHeader({ names, scale, zoom, today, onZoom, onToday, onPan }: Props) {
+export function ScaleHeader(props: Props) {
+  const { names, scale, zoom, today, onZoom, onToday, onPan, columns, resizer } = props;
   const { major, minor } = ticks(scale, zoom);
   const index = ZOOMS.indexOf(zoom);
   const step = (by: number) => {
@@ -87,6 +92,8 @@ export function ScaleHeader({ names, scale, zoom, today, onZoom, onToday, onPan 
           <LocateFixed className="size-4" />
         </button>
         <Legend />
+        <ColumnsMenu screen="timeline" columns={columns} className="ml-auto" />
+        {resizer}
       </div>
       <div
         role="columnheader"

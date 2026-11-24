@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hotkey, isPaletteKey } from './hotkeys';
+import { hotkey, isPaletteKey, undoKey } from './hotkeys';
 
 const press = (init: KeyboardEventInit, target: HTMLElement = document.body) => {
   const event = new KeyboardEvent('keydown', { bubbles: true, ...init });
@@ -60,5 +60,38 @@ describe('isPaletteKey', () => {
     expect(key({ code: 'KeyK', ctrlKey: true, shiftKey: true })).toBe(false);
     expect(key({ code: 'KeyK', ctrlKey: true, altKey: true })).toBe(false);
     expect(key({ code: 'KeyJ', ctrlKey: true })).toBe(false);
+  });
+});
+
+describe('undoKey', () => {
+  const pressed = (init: KeyboardEventInit, target: HTMLElement = document.body) => {
+    const event = new KeyboardEvent('keydown', { bubbles: true, ...init });
+    target.dispatchEvent(event);
+    return undoKey(event);
+  };
+
+  it('is Ctrl+Z in any layout, back again is Ctrl+Shift+Z or Ctrl+Y', () => {
+    expect(pressed({ code: 'KeyZ', key: 'я', ctrlKey: true })).toBe('undo');
+    expect(pressed({ code: 'KeyZ', ctrlKey: true, shiftKey: true })).toBe('redo');
+    expect(pressed({ code: 'KeyY', ctrlKey: true })).toBe('redo');
+    expect(pressed({ code: 'KeyZ' })).toBeNull();
+    expect(pressed({ code: 'KeyZ', ctrlKey: true, altKey: true })).toBeNull();
+  });
+
+  it('is free again while a window is closing', () => {
+    const dialog = document.body.appendChild(document.createElement('div'));
+    dialog.setAttribute('role', 'alertdialog');
+    const button = dialog.appendChild(document.createElement('button'));
+    dialog.setAttribute('data-state', 'open');
+    expect(pressed({ code: 'KeyZ', ctrlKey: true }, button)).toBeNull();
+    dialog.setAttribute('data-state', 'closed');
+    expect(pressed({ code: 'KeyZ', ctrlKey: true }, button)).toBe('undo');
+    dialog.remove();
+  });
+
+  it('leaves typed text to the browser', () => {
+    const field = document.body.appendChild(document.createElement('textarea'));
+    expect(pressed({ code: 'KeyZ', ctrlKey: true }, field)).toBeNull();
+    field.remove();
   });
 });

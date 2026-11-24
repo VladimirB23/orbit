@@ -17,6 +17,7 @@ export type Signals = Schemas['SignalsOut'];
 export type Actual = Schemas['ActualOut'];
 export type Focus = Schemas['FocusOut'];
 export type OrbitEvent = Schemas['EventOut'];
+export type Undone = Schemas['UndoneOut'];
 export type WorkSession = Schemas['SessionOut'];
 export type Meta = Schemas['MetaOut'];
 export type ProjectPatch = Schemas['ProjectPatch'];

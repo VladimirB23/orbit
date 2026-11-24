@@ -1,5 +1,5 @@
 /** The change journal in words. */
-import type { Actor, OrbitEvent } from '@/api/types';
+import type { Actor, OrbitEvent, Undone } from '@/api/types';
 import { formatDate } from './dates';
 import { isStatus, PRIORITY_LABEL, STATUS_LABEL } from './status';
 
@@ -71,4 +71,15 @@ export function groupEvents(events: OrbitEvent[]): EventGroup[] {
     else groups.push({ actor: event.actor, at: event.at, events: [event] });
   }
   return groups;
+}
+
+/** What an undo has taken back: "срок, «KPI design»". */
+export function undoneText({ action, fields, title, count }: Undone): string {
+  const inside = count > 1 ? ` и все внутри (${count - 1})` : '';
+  const name = `«${title}»`;
+  if (action === 'create') return `добавление ${name}`;
+  if (action === 'delete') return `удаление ${name}${inside}`;
+  if (fields.includes('archived_at')) return `перенос в архив или из него, ${name}`;
+  const labels = new Set(fields.map((field) => (FIELD_LABEL[field] ?? field).toLowerCase()));
+  return `${[...labels].join(' и ')}, ${name}`;
 }

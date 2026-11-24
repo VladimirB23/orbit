@@ -2,7 +2,7 @@ import type { Changes } from '@/api/patch';
 import type { DateChanges } from '@/lib/timeline';
 import type { NodeKey, TreeItem } from '@/lib/tree';
 
-export type CellMenu = 'status' | 'start' | 'due' | 'actions';
+export type CellMenu = 'status' | 'priority' | 'start' | 'due' | 'actions';
 export type TextCell = 'title' | 'note';
 export type AddKind = 'milestone' | 'task';
 

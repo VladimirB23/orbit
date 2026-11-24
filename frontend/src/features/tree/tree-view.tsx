@@ -1,8 +1,11 @@
 /** The tree grid: rows, keyboard and the line for adding. */
-import { Fragment } from 'react';
+import { Fragment, useRef } from 'react';
 import type { Meta } from '@/api/types';
+import { type Column, treeLayout } from '@/lib/columns';
 import type { Day } from '@/lib/dates';
 import type { Row, TreeItem } from '@/lib/tree';
+import { cn } from '@/lib/utils';
+import { type Columns, ColumnsMenu, Resizer, useWidth, widthOfNames } from './columns';
 import { focusRow } from './focus';
 import { QuickAdd } from './quick-add';
 import { TreeRow } from './tree-row';
@@ -16,26 +19,20 @@ interface Props {
   ui: TreeUi;
   flashing: (row: Row) => boolean;
   actions: RowActions;
+  columns: Columns;
   onAddClose: (parent: TreeItem, refocus: boolean) => void;
   empty: React.ReactNode;
 }
 
-const HEADERS = [
-  ['Название', 'pl-8'],
-  ['Статус', 'pl-1.5'],
-  ['Прогресс', 'col-progress pl-1.5'],
-  ['Старт', 'col-start pl-1.5'],
-  ['Срок', 'pl-1.5'],
-  ['Комментарий', 'col-note pl-1.5'],
-] as const;
-
 export function TreeView(props: Props) {
-  const { rows, today, limits, ui, flashing, actions, onAddClose, empty } = props;
+  const { rows, today, limits, ui, flashing, actions, columns, onAddClose, empty } = props;
   const { root, activeKey, onKeyDown } = useRowKeys({ rows, ui, actions });
   const place = addingPlace(rows, ui.adding);
+  const box = useRef<HTMLDivElement>(null);
+  const layout = treeLayout(columns.settings, useWidth(box));
 
   return (
-    <div className="tree min-w-0 flex-1 overflow-auto">
+    <div ref={box} className="tree min-w-0 flex-1 overflow-auto">
       <div
         ref={root}
         role="treegrid"
@@ -44,24 +41,54 @@ export function TreeView(props: Props) {
         aria-rowcount={rows.length + 1}
         onKeyDown={onKeyDown}
         className="outline-none"
+        style={{ '--fields': layout.template, minWidth: layout.minWidth } as React.CSSProperties}
       >
         <div
           role="row"
           className="tree-grid sticky top-0 z-25 h-8 border-border border-b bg-background px-3 text-muted-foreground text-xs"
         >
-          {HEADERS.map(([title, className]) => (
-            <div role="columnheader" key={title} className={className}>
-              <span className={title === 'Статус' ? 'col-status-text' : undefined}>{title}</span>
-            </div>
+          <Header
+            label="Название"
+            className="pl-8"
+            resizer={(current) =>
+              layout.compact ? null : (
+                <Resizer
+                  id="name"
+                  label="Название"
+                  columns={columns}
+                  current={current}
+                  best={() => (root.current ? widthOfNames(root.current) : current())}
+                />
+              )
+            }
+          />
+          {layout.columns.map((column) => (
+            <Header
+              key={column.id}
+              label={column.label}
+              className="pl-1.5"
+              textClass={textClass(column)}
+              resizer={(current) =>
+                layout.compact ? null : (
+                  <Resizer
+                    id={column.id}
+                    label={column.label}
+                    columns={columns}
+                    current={current}
+                  />
+                )
+              }
+            />
           ))}
-          <div role="columnheader">
-            <span className="sr-only">Действия</span>
+          <div role="columnheader" aria-label="Действия" className="flex justify-end">
+            <ColumnsMenu screen="tree" columns={columns} />
           </div>
         </div>
         {rows.map((row, index) => (
           <Fragment key={row.item.key}>
             <TreeRow
               row={row}
+              columns={layout.columns}
               today={today}
               limits={limits}
               active={row.item.key === activeKey}
@@ -88,6 +115,30 @@ export function TreeView(props: Props) {
         ))}
       </div>
       {rows.length === 0 && empty}
+    </div>
+  );
+}
+
+const textClass = ({ id }: Column) => (id === 'status' ? 'col-status-text' : undefined);
+
+interface HeaderProps {
+  label: string;
+  className: string;
+  textClass?: string;
+  resizer: (current: () => number) => React.ReactNode;
+}
+
+function Header({ label, className, textClass, resizer }: HeaderProps) {
+  const cell = useRef<HTMLDivElement>(null);
+  return (
+    <div
+      ref={cell}
+      role="columnheader"
+      aria-label={label}
+      className={cn('relative flex h-full min-w-0 items-center', className)}
+    >
+      <span className={cn('truncate', textClass)}>{label}</span>
+      {resizer(() => cell.current?.offsetWidth ?? 0)}
     </div>
   );
 }

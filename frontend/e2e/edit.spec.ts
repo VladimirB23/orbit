@@ -134,7 +134,7 @@ test('deletes only after a confirmation', async ({ page, orbit: _ }) => {
 
 test('creates a project with a code made from its Russian name', async ({ page, orbit: _ }) => {
   await page.getByRole('button', { name: 'Новый проект' }).click();
-  await page.getByLabel('Название').fill('Поиск работы');
+  await page.getByRole('textbox', { name: 'Название' }).fill('Поиск работы');
   await expect(page.getByLabel('Код')).toHaveValue('poisk-raboty');
   await page.getByLabel('Код').fill('reading-list');
   await page.getByRole('button', { name: 'Создать проект' }).click();

@@ -62,6 +62,7 @@ export function TitleCell({ row, limits, tab, editing, actions, overlay }: Title
   return (
     <div
       role="gridcell"
+      data-cell="name"
       className="relative flex min-w-0 items-center gap-1"
       style={{ paddingLeft: `calc(${row.depth} * var(--indent, 1.5rem))` }}
     >
@@ -117,6 +118,7 @@ export function TitleCell({ row, limits, tab, editing, actions, overlay }: Title
                 type="button"
                 tabIndex={-1}
                 title={item.title}
+                data-fit
                 onClick={() => actions.open(item)}
                 onDoubleClick={() => actions.startEdit(item, 'title')}
                 className={cn(

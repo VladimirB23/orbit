@@ -214,10 +214,29 @@ export function useSchedule({ scroller, names, scale, today, save }: Options) {
     setMove(shown);
   }
 
+  /** Ctrl+Z before the keys are saved: there is nothing in the journal yet. */
+  function forgetKeys(): boolean {
+    if (!keys.current) return false;
+    clearTimeout(keys.current.timer);
+    keys.current = null;
+    setMove(null);
+    return true;
+  }
+
   const changesOf = (key: NodeKey): DateChanges | null =>
     move?.item.key === key ? move.changes : null;
 
-  return { move, changesOf, drag, draw, pan, nudge, justDragged: () => dragged.current };
+  return {
+    move,
+    changesOf,
+    drag,
+    draw,
+    pan,
+    nudge,
+    forgetKeys,
+    waiting: () => keys.current !== null,
+    justDragged: () => dragged.current,
+  };
 }
 
 export type Schedule = ReturnType<typeof useSchedule>;

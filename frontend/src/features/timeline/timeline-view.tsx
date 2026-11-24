@@ -1,12 +1,14 @@
 /** The same rows as in the tree, on a time scale. */
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Meta } from '@/api/types';
+import { type Columns, Resizer, useWidth, widthOfNames } from '@/features/tree/columns';
 import { focusRow } from '@/features/tree/focus';
 import { QuickAdd } from '@/features/tree/quick-add';
 import type { RowActions } from '@/features/tree/types';
 import { addingPlace, type TreeUi, useRowKeys } from '@/features/tree/use-row-keys';
+import { timelineLayout } from '@/lib/columns';
 import { type Day, dayDiff } from '@/lib/dates';
-import { hotkey } from '@/lib/hotkeys';
+import { hotkey, undoKey } from '@/lib/hotkeys';
 import { makeScale, spanOf, ticks, ZOOMS, type Zoom } from '@/lib/timeline';
 import { findItem, type Row, type TreeItem, walk } from '@/lib/tree';
 import { extent } from './bar';
@@ -24,6 +26,7 @@ interface Props {
   ui: TreeUi;
   flashing: (row: Row) => boolean;
   actions: RowActions;
+  columns: Columns;
   zoom: Zoom;
   onZoom: (zoom: Zoom) => void;
   onAddClose: (parent: TreeItem, refocus: boolean) => void;
@@ -33,10 +36,12 @@ interface Props {
 const calm = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function TimelineView(props: Props) {
-  const { items, rows, today, limits, ui, flashing, actions, zoom, onZoom, onAddClose } = props;
+  const { items, rows, today, limits, ui, flashing, actions, columns, zoom, onZoom, onAddClose } =
+    props;
   const scroller = useRef<HTMLDivElement>(null);
   const names = useRef<HTMLDivElement>(null);
   const view = useViewport(scroller, names);
+  const layout = timelineLayout(columns.settings, useWidth(scroller));
 
   // All rows, also folded and filtered ones: the scale must not jump when they appear.
   const scale = useMemo(() => {
@@ -143,15 +148,13 @@ export function TimelineView(props: Props) {
     ui,
     actions,
     more: (event, item) => {
+      if (undoKey(event.nativeEvent) === 'undo' && schedule.waiting()) return schedule.forgetKeys;
       const key = hotkey(event.nativeEvent);
       if (key === '[') return () => schedule.nudge(item, 'end', -1);
       if (key === ']') return () => schedule.nudge(item, 'end', 1);
       const shifted = event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
       if (shifted && event.key === 'ArrowLeft') return () => schedule.nudge(item, 'move', -1);
       if (shifted && event.key === 'ArrowRight') return () => schedule.nudge(item, 'move', 1);
-      const cell = root.current?.querySelector<HTMLElement>(`[data-key="${item.key}"] .due-cell`);
-      // No room for the date here: it is edited in the panel.
-      if (key === 'd' && cell?.offsetParent === null) return () => actions.open(item);
       return undefined;
     },
   });
@@ -169,6 +172,13 @@ export function TimelineView(props: Props) {
   );
 
   const place = addingPlace(rows, ui.adding);
+  const nameWidth = {
+    id: 'name' as const,
+    label: 'Название',
+    columns,
+    current: () => layout.name,
+    best: () => (root.current ? widthOfNames(root.current) : layout.name),
+  };
   const dues = new Map(items.map((project) => [project.slug, project.dueDate]));
   const days = { '--day': `${scale.px}px`, '--step': zoom === 'days' ? 1 : 7 };
 
@@ -183,7 +193,13 @@ export function TimelineView(props: Props) {
           aria-rowcount={rows.length + 1}
           onKeyDown={onKeyDown}
           className="timeline-body relative min-h-full outline-none"
-          style={{ width: `calc(var(--names) + ${scale.width}px)` }}
+          style={
+            {
+              '--names': `${layout.width}px`,
+              '--fields': layout.template,
+              width: layout.width + scale.width,
+            } as React.CSSProperties
+          }
         >
           <div
             aria-hidden="true"
@@ -210,8 +226,15 @@ export function TimelineView(props: Props) {
             className="pointer-events-none absolute inset-y-0 z-4 w-0.5 -translate-x-1/2 bg-foreground/40"
             style={{ left: `calc(var(--names) + ${scale.x(today) + scale.px / 2}px)` }}
           />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-11">
+            <div className="sticky left-0 h-full w-(--names)">
+              <Resizer {...nameWidth} silent className="pointer-events-auto" />
+            </div>
+          </div>
           <ScaleHeader
             names={names}
+            columns={columns}
+            resizer={<Resizer {...nameWidth} />}
             scale={scale}
             zoom={zoom}
             today={today}
@@ -223,6 +246,7 @@ export function TimelineView(props: Props) {
             <Fragment key={row.item.key}>
               <TimelineRow
                 row={row}
+                columns={layout.columns}
                 today={today}
                 limits={limits}
                 active={row.item.key === activeKey}

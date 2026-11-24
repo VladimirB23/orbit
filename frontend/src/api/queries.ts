@@ -66,6 +66,9 @@ export function useSessions(project: string) {
   });
 }
 
+/** Changes go one after another: an undo must not overtake the edit it takes back. */
+const CHANGES = { id: 'changes' };
+
 // --- writing -----------------------------------------------------------------
 
 export interface Target {
@@ -110,6 +113,7 @@ function save({ target, changes, force = false }: SaveInput): Promise<unknown> {
 export function useSaveMutation() {
   const qc = useQueryClient();
   return useMutation({
+    scope: CHANGES,
     mutationFn: save,
     onMutate: async ({ target, changes }) => {
       markOwn(target.entity, target.id);
@@ -135,6 +139,7 @@ export interface RemoveInput {
 export function useRemoveMutation() {
   const qc = useQueryClient();
   return useMutation({
+    scope: CHANGES,
     mutationFn: ({ target, force = false }: RemoveInput): Promise<unknown> =>
       target.entity === 'milestone'
         ? unwrap(
@@ -154,6 +159,7 @@ export function useRemoveMutation() {
 export function useArchiveMutation() {
   const qc = useQueryClient();
   return useMutation({
+    scope: CHANGES,
     mutationFn: ({ slug, archived }: { slug: string; archived: boolean }) =>
       archived
         ? unwrap(client.POST('/api/v1/projects/{slug}/archive', { params: { path: { slug } } }))
@@ -166,6 +172,7 @@ export function useArchiveMutation() {
 export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
+    scope: CHANGES,
     mutationFn: (body: ProjectCreate) => unwrap(client.POST('/api/v1/projects', { body })),
     onSuccess: (project) => markOwn('project', project.id),
     onSettled: () => refreshData(qc),
@@ -183,6 +190,7 @@ export interface AddInput {
 export function useAddMutation() {
   const qc = useQueryClient();
   return useMutation({
+    scope: CHANGES,
     mutationFn: async ({ slug, kind, title, milestoneId, parentId }: AddInput) => {
       const params = { path: { slug } };
       if (kind === 'milestone') {
@@ -205,5 +213,15 @@ export function useAddMutation() {
       void qc.invalidateQueries({ queryKey: keys.events });
       return qc.invalidateQueries({ queryKey: keys.tree });
     },
+  });
+}
+
+export function useUndoMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    scope: CHANGES,
+    mutationFn: (way: 'undo' | 'redo') =>
+      way === 'undo' ? unwrap(client.POST('/api/v1/undo')) : unwrap(client.POST('/api/v1/redo')),
+    onSettled: () => refreshData(qc),
   });
 }

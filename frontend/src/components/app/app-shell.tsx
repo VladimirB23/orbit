@@ -13,9 +13,10 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useUndo } from '@/features/item/use-undo';
 import { Palette } from '@/features/palette/palette';
 import { emitNewProject } from '@/lib/app-events';
-import { hotkey, isPaletteKey } from '@/lib/hotkeys';
+import { hotkey, isPaletteKey, undoKey } from '@/lib/hotkeys';
 import { type Theme, useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { ShortcutsDialog } from './shortcuts-dialog';
@@ -28,6 +29,7 @@ export function AppShell() {
   const [palette, setPalette] = useState(false);
   const openHelp = useCallback(() => setHelp(true), []);
   const switchScreen = useSwitchScreen();
+  const undo = useUndo();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -35,6 +37,12 @@ export function AppShell() {
         event.preventDefault(); // the browser would go to its address bar
         // Over another dialog it would hide an unanswered question.
         if (!document.querySelector('[role="dialog"],[role="alertdialog"]')) setPalette(true);
+        return;
+      }
+      const way = undoKey(event);
+      if (way) {
+        event.preventDefault();
+        undo(way);
         return;
       }
       const run: Record<string, () => void> = {
@@ -50,7 +58,7 @@ export function AppShell() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [switchScreen]);
+  }, [switchScreen, undo]);
 
   return (
     <div className="flex h-dvh flex-col">

@@ -98,14 +98,14 @@ export function useEdit() {
     const inside = [...walk(item.children)].length;
     const ok = await confirm({
       title: item.entity === 'milestone' ? 'Удалить этап?' : 'Удалить задачу?',
-      body: `«${item.title}»${inside ? ` и все внутри (${inside})` : ''}. Запись об удалении останется в журнале, но вернуть одной кнопкой нельзя.`,
+      body: `«${item.title}»${inside ? ` и все внутри (${inside})` : ''}. Сразу после удаления можно вернуть: Ctrl+Z.`,
       action: 'Удалить',
       destructive: true,
     });
     if (!ok) return false;
     try {
       await remove({ target: targetOf(item), force: inside > 0 });
-      toast(`Удалено: ${item.title}`);
+      toast(`Удалено: ${item.title}`, { description: 'Ctrl+Z вернет' });
       return true;
     } catch (error) {
       toast.error(errorText(error));

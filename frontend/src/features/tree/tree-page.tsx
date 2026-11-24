@@ -10,6 +10,7 @@ import { useEdit } from '@/features/item/use-edit';
 import { NewProjectDialog } from '@/features/project/new-project-dialog';
 import { TimelineView } from '@/features/timeline/timeline-view';
 import { useAppEvents } from '@/lib/app-events';
+import { DEFAULT_COLUMNS, parseColumns } from '@/lib/columns';
 import { toDay } from '@/lib/dates';
 import { openExternal } from '@/lib/external';
 import { asBoolean, asStrings, usePersisted } from '@/lib/persisted';
@@ -28,6 +29,7 @@ import {
   visibleRows,
 } from '@/lib/tree';
 import type { TreeSearch } from '@/router';
+import type { Columns } from './columns';
 import { focusRow, focusRowSoon } from './focus';
 import { FilterMenu, SearchField, SummaryBar } from './toolbar';
 import { TreeView } from './tree-view';
@@ -60,6 +62,15 @@ export function TreePage() {
   const [toggled, setToggled] = useState(NO_TOGGLES);
   const [zoom, setZoom] = usePersisted<Zoom>('orbit.zoom', 'weeks', asZoom);
   const onTimeline = search.screen === 'timeline';
+  const [treeFields, setTreeFields] = usePersisted('orbit.fields', DEFAULT_COLUMNS, parseColumns);
+  const [timeFields, setTimeFields] = usePersisted(
+    'orbit.fields.timeline',
+    DEFAULT_COLUMNS,
+    parseColumns,
+  );
+  const columns: Columns = onTimeline
+    ? { settings: timeFields, change: setTimeFields }
+    : { settings: treeFields, change: setTreeFields };
 
   const filter = useMemo<Filter>(
     () => ({
@@ -181,8 +192,13 @@ export function TreePage() {
       setUi((state) => ({ ...state, editing: null }));
       if (refocus) requestAnimationFrame(() => focusRow(item.key));
     },
-    setMenu: (item, menu) =>
-      setUi((state) => ({ ...state, menu: menu && { key: item.key, name: menu } })),
+    setMenu: (item, menu) => {
+      // The field is not on the screen: it is edited in the panel.
+      const cell = `[role=row][data-key="${item.key}"] [data-cell="${menu}"]`;
+      const there = document.querySelector<HTMLElement>(cell)?.offsetParent;
+      if (menu && menu !== 'actions' && !there) return open(item);
+      setUi((state) => ({ ...state, menu: menu && { key: item.key, name: menu } }));
+    },
     startAdd: (item, wanted) => {
       // Milestones live only in projects: elsewhere the same key adds a task.
       const kind = item.entity === 'project' ? wanted : 'task';
@@ -245,6 +261,7 @@ export function TreePage() {
     ui: { ...ui, selected: selectedItem?.key ?? null },
     flashing,
     actions,
+    columns,
     onAddClose: () => setUi((state) => ({ ...state, adding: null })),
     empty:
       items.length === 0 && !isFiltering(filter) ? (
