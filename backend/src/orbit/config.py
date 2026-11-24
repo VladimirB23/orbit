@@ -7,6 +7,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "orbit.db"
 DEMO_DB_PATH = REPO_ROOT / "data" / "demo.db"
+UI_DIR = REPO_ROOT / "frontend" / "dist"
+DEFAULT_PORT = 8420
 
 
 def db_path() -> Path:

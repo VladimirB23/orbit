@@ -5,6 +5,7 @@ from pathlib import Path
 
 from sqlalchemy import Engine
 
+from orbit.api.feed import ChangeFeed
 from orbit.domain.clock import Clock
 
 
@@ -13,3 +14,4 @@ class AppState:
     db: Path
     engine: Engine
     clock: Clock
+    feed: ChangeFeed

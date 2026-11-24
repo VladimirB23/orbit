@@ -3,11 +3,12 @@
 import json
 import os
 import re
-import sqlite3
+import webbrowser
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
+from http.client import HTTPConnection, HTTPException
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -17,7 +18,8 @@ from sqlalchemy.orm import Session
 
 from orbit import __version__, serialize
 from orbit.cli import render
-from orbit.config import DEFAULT_DB_PATH, DEMO_DB_PATH
+from orbit.config import DEFAULT_DB_PATH, DEFAULT_PORT, DEMO_DB_PATH
+from orbit.db.backup import auto_backup, backup_dir, copy_database
 from orbit.db.engine import current_revision, ensure_schema, head_revision, make_engine
 from orbit.db.models import Event, Milestone, Project, Task
 from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
@@ -551,6 +553,66 @@ def set_(
     execute(ctx, json_out, action, renderers[entity])
 
 
+# --- server -------------------------------------------------------------------
+# FastAPI is imported only here: every other command stays fast.
+
+
+def run_server(app: Any, port: int, *, on_ready: Callable[[], object]) -> None:
+    from orbit.api.server import run
+
+    run(app, port, on_ready)
+
+
+def running_orbit(port: int) -> str | None:
+    """Database name of an orbit server on this port, None if something else answers."""
+    connection = HTTPConnection("127.0.0.1", port, timeout=1)
+    try:
+        connection.request("GET", "/api/v1/meta")
+        return str(json.loads(connection.getresponse().read())["database"]["name"])
+    except (OSError, HTTPException, ValueError, KeyError, TypeError):
+        return None
+    finally:
+        connection.close()
+
+
+@app.command()
+def serve(
+    ctx: typer.Context,
+    port: Annotated[int, typer.Option(help="Port on 127.0.0.1.")] = DEFAULT_PORT,
+    open_: Annotated[
+        bool, typer.Option("--open/--no-open", help="Open the interface in the browser.")
+    ] = True,
+) -> None:
+    """API and interface on this computer only; stop with Ctrl+C."""
+    from orbit.api.app import create_app
+    from orbit.api.server import port_is_free
+
+    db: Path = ctx.obj.db
+    url = f"http://127.0.0.1:{port}"
+    if not port_is_free(port):
+        running = running_orbit(port)
+        if running is None:
+            typer.echo(f"error: port {port} is busy, choose another one: --port", err=True)
+            raise typer.Exit(1)
+        typer.echo(f"orbit is already running with {running}: {url}")
+        if open_:
+            webbrowser.open(url)
+        return
+    copied = auto_backup(db, date.today())
+    if copied is not None:
+        typer.echo(f"backup: {copied}")
+    typer.echo(f"orbit with {db.name}: {url} (Ctrl+C to stop)")
+    run_server(create_app(db), port, on_ready=lambda: open_ and webbrowser.open(url))
+
+
+@app.command()
+def openapi() -> None:
+    """Print the API schema; the interface generates its types from it."""
+    from orbit.api.app import create_app
+
+    emit_json(create_app(DEFAULT_DB_PATH).openapi())
+
+
 # --- maintenance --------------------------------------------------------------
 
 
@@ -569,13 +631,9 @@ def backup(
         ensure_schema(engine)
     finally:
         engine.dispose()
-    target_dir = dir_ or source.parent / "backups"
-    target_dir.mkdir(parents=True, exist_ok=True)
+    target_dir = dir_ or backup_dir(source)
     target = target_dir / f"{source.stem}-{datetime.now():%Y%m%d-%H%M%S}.db"
-    with sqlite3.connect(source) as src, sqlite3.connect(target) as dst:
-        src.backup(dst)
-    src.close()
-    dst.close()
+    copy_database(source, target)
     data = {"path": str(target), "bytes": target.stat().st_size}
     if json_out:
         emit_json(data)

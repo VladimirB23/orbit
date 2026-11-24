@@ -6,7 +6,14 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import Engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
-from orbit.db.engine import current_revision, downgrade, head_revision, make_engine, upgrade
+from orbit.db.engine import (
+    current_revision,
+    downgrade,
+    ensure_schema,
+    head_revision,
+    make_engine,
+    upgrade,
+)
 from orbit.db.models import Base
 from orbit.domain.enums import Status
 
@@ -79,3 +86,23 @@ def test_every_domain_status_is_allowed_by_the_schema(engine: Engine) -> None:
                 ),
                 {"slug": f"p{i}", "status": status.value, "now": NOW},
             )
+
+
+def test_database_with_data_is_copied_before_a_migration(
+    db_file: Path, engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from orbit.db import engine as module
+
+    with monkeypatch.context() as patch:
+        patch.setattr(module, "head_revision", lambda: "9999")
+        patch.setattr(module, "upgrade", lambda _engine: None)
+        ensure_schema(engine)
+    [copy] = (db_file.parent / "backups").glob("orbit-before-upgrade-from-*.db")
+    assert copy.stat().st_size > 0
+
+
+def test_new_database_needs_no_copy(db_file: Path) -> None:
+    fresh = make_engine(db_file)
+    ensure_schema(fresh)
+    fresh.dispose()
+    assert not (db_file.parent / "backups").exists()

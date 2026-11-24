@@ -10,6 +10,8 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
+from orbit.db.backup import backup_dir, safe_copy
+
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
 
@@ -57,9 +59,17 @@ def downgrade(engine: Engine, revision: str) -> None:
 
 
 def ensure_schema(engine: Engine) -> None:
-    """Apply pending migrations; a cheap no-op when the schema is current."""
-    if current_revision(engine) != head_revision():
-        upgrade(engine)
+    """Apply pending migrations; a cheap no-op when the schema is current.
+
+    A database that already holds data is copied first: a bad migration can be undone.
+    """
+    current = current_revision(engine)
+    if current == head_revision():
+        return
+    if current is not None and engine.url.database:
+        source = Path(engine.url.database)
+        safe_copy(source, backup_dir(source) / f"{source.stem}-before-upgrade-from-{current}.db")
+    upgrade(engine)
 
 
 def session_factory(engine: Engine) -> sessionmaker[Session]:
