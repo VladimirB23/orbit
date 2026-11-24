@@ -45,6 +45,7 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
     clock = _ReplayClock(today)
     vlad = Orbit(session, actor=Actor.VLADIMIR, clock=clock)
     claude = Orbit(session, actor=Actor.CLAUDE, clock=clock)
+    vlad.batch = claude.batch = None  # a whole story is not one action to undo
 
     def d(offset: int) -> date:
         return today + timedelta(days=offset)

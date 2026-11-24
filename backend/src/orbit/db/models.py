@@ -132,6 +132,9 @@ class Event(Base):
     field: Mapped[str | None] = mapped_column(String(50))
     old_value: Mapped[str | None] = mapped_column(Text)
     new_value: Mapped[str | None] = mapped_column(Text)
+    # Events of one action; the action it takes back, when it is an undo.
+    batch: Mapped[str | None] = mapped_column(String(32), index=True)
+    undoes: Mapped[str | None] = mapped_column(String(32))
 
 
 class WorkSession(Base):

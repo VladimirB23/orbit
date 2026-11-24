@@ -186,3 +186,30 @@ def test_square_brackets_in_texts_are_not_markup(run: Any, command: tuple[str, .
     result = run(*command)
     assert result.exit_code == 0, result.output
     assert "[/bold]" in result.output
+
+
+# --- undo -----------------------------------------------------------------------
+
+
+def test_undo_takes_back_the_last_command_and_redo_returns_it(run: Any) -> None:
+    run("project", "add", "a", "--name", "A [x]")
+    run("set", "project", "a", "--summary", "New")
+    undone = as_json(run("undo", "--json"))
+    assert (undone["action"], undone["fields"]) == ("update", ["summary"])
+    assert as_json(run("project", "show", "a", "--json"))["summary"] is None
+    result = run("redo")
+    assert result.exit_code == 0
+    assert "summary of project #1 A [x]" in result.output
+    assert as_json(run("project", "show", "a", "--json"))["summary"] == "New"
+
+
+def test_undo_with_nothing_left(run: Any) -> None:
+    assert run("undo").exit_code == 3
+
+
+def test_undo_refuses_a_row_that_has_changed(run: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    run("project", "add", "a", "--name", "A")
+    monkeypatch.setenv("ORBIT_ACTOR", "vladimir")
+    run("set", "project", "a", "--name", "B")
+    monkeypatch.setenv("ORBIT_ACTOR", "claude")
+    assert run("undo").exit_code == 4

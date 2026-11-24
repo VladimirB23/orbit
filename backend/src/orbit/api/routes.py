@@ -13,6 +13,7 @@ from orbit.api.paths import API_V1
 from orbit.api.state import AppState
 from orbit.config import DEMO_DB_PATH
 from orbit.db.models import COMMENT_MAX, SUMMARY_MAX
+from orbit.domain import undo
 from orbit.domain.enums import Actor, Entity
 from orbit.domain.service import NAME_MAX, TITLE_MAX, UPCOMING_DAYS, Orbit
 
@@ -89,6 +90,20 @@ def sessions(
     """Claude sessions, newest first."""
     rows = orbit.sessions(project, limit=limit)
     return [s.SessionOut.model_validate(row) for row in rows]
+
+
+# --- undo -----------------------------------------------------------------------
+
+
+@router.post("/undo")
+def undo_last(orbit: OrbitDep) -> s.UndoneOut:
+    """Take back the last action of Vladimir; 409 when somebody has changed it since."""
+    return s.UndoneOut.model_validate(undo.undo(orbit))
+
+
+@router.post("/redo")
+def redo_last(orbit: OrbitDep) -> s.UndoneOut:
+    return s.UndoneOut.model_validate(undo.redo(orbit))
 
 
 # --- projects -----------------------------------------------------------------

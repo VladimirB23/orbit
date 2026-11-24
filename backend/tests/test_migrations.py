@@ -117,3 +117,23 @@ def test_data_of_the_first_version_survives_the_sessions_migration(db_file: Path
         assert conn.execute(text("SELECT slug FROM projects")).scalars().all() == ["p"]
         assert conn.execute(text("SELECT count(*) FROM sessions")).scalar() == 0
     engine.dispose()
+
+
+def test_old_events_survive_the_upgrade_to_batches(db_file: Path) -> None:
+    engine = make_engine(db_file)
+    upgrade(engine, "0002")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO events (at, actor, entity, entity_id, action, field, old_value,"
+                " new_value) VALUES (:now, 'vladimir', 'task', 1, 'update', 'title', 'A', 'B')"
+            ),
+            {"now": NOW},
+        )
+    upgrade(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT new_value, batch, undoes FROM events")).all()
+        indexes = {i["name"] for i in inspect(engine).get_indexes("events")}
+    assert [tuple(row) for row in rows] == [("B", None, None)]
+    assert indexes >= {"ix_events_entity", "ix_events_at", "ix_events_batch"}
+    engine.dispose()

@@ -28,6 +28,7 @@ from orbit.config import (
 from orbit.db.backup import auto_backup, backup_dir, copy_database
 from orbit.db.engine import current_revision, ensure_schema, head_revision, make_engine
 from orbit.db.models import Event, Milestone, Project, Task, WorkSession
+from orbit.domain import undo
 from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, OrbitError, ValidationError
 from orbit.domain.rules import actor_from_env, is_overdue
@@ -266,6 +267,18 @@ def log(
         return [serialize.event(e) for e in rows[-limit:]]
 
     execute(ctx, json_out, action, render.events)
+
+
+@app.command("undo")
+def undo_command(ctx: typer.Context, json_out: JsonOpt = False) -> None:
+    """Take back the last action of the same actor (ORBIT_ACTOR), within 12 hours."""
+    execute(ctx, json_out, lambda o: asdict(undo.undo(o)), render.undone)
+
+
+@app.command("redo")
+def redo_command(ctx: typer.Context, json_out: JsonOpt = False) -> None:
+    """Bring back what the last undo has taken."""
+    execute(ctx, json_out, lambda o: asdict(undo.redo(o)), render.undone)
 
 
 # --- projects -----------------------------------------------------------------

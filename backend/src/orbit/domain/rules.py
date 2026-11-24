@@ -88,6 +88,18 @@ def with_children(own: Actual, signs: Iterable[date | None]) -> Actual:
     return Actual(min(days, default=None), own.end)
 
 
+def canceled_out(actions: Sequence[tuple[str, str | None]]) -> set[str]:
+    """Actions that are not in force: undone ones together with their undoing.
+
+    Newest first, each with the action it takes back. A redo takes back an undo.
+    """
+    dead: set[str] = set()
+    for action, undoes in actions:
+        if undoes is not None and action not in dead:
+            dead |= {action, undoes}
+    return dead
+
+
 def next_done_at(
     old: Status, new: Status, current: datetime | None, now: datetime
 ) -> datetime | None:

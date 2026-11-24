@@ -134,6 +134,17 @@ class EventOut(Out):
     new_value: str | None
 
 
+class UndoneOut(Out):
+    """What has been taken back or brought back, as it was done."""
+
+    entity: Entity
+    id: int
+    title: str
+    action: Action
+    fields: list[str]
+    count: int
+
+
 class SessionOut(Out):
     id: int
     external_id: str

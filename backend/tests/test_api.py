@@ -255,3 +255,32 @@ def test_meta_tells_the_ui_limits_and_database(client: TestClient) -> None:
 def test_meta_marks_the_demo_database(tmp_path: Path) -> None:
     with TestClient(create_app(tmp_path / "demo.db"), base_url=BASE) as client:
         assert client.get("/api/v1/meta").json()["database"] == {"name": "demo.db", "demo": True}
+
+
+# --- undo -----------------------------------------------------------------------
+
+
+def test_undo_and_redo(client: TestClient, project: dict[str, Any]) -> None:
+    client.patch("/api/v1/projects/a", json={"summary": "New", "priority": 2})
+    undone = client.post("/api/v1/undo")
+    assert undone.status_code == 200
+    assert undone.json() == {
+        "entity": "project",
+        "id": project["id"],
+        "title": project["name"],
+        "action": "update",
+        "fields": ["priority", "summary"],
+        "count": 1,
+    }
+    [node] = client.get("/api/v1/tree").json()["projects"]
+    assert (node["project"]["summary"], node["project"]["priority"]) == (None, 0)
+    assert client.post("/api/v1/redo").status_code == 200
+    [node] = client.get("/api/v1/tree").json()["projects"]
+    assert node["project"]["summary"] == "New"
+
+
+def test_undo_with_nothing_to_undo(client: TestClient) -> None:
+    response = client.post("/api/v1/undo")
+    assert response.status_code == 404
+    assert response.json()["error"]["type"] == "not_found"
+    assert client.post("/api/v1/redo").status_code == 404

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
@@ -32,6 +33,7 @@ from orbit.domain.errors import ConflictError, NotFoundError, ValidationError
 from orbit.domain.rules import (
     Actual,
     actual_span,
+    canceled_out,
     earliest_sign,
     is_overdue,
     is_upcoming,
@@ -160,7 +162,7 @@ def _clean(values: dict[str, Any]) -> dict[str, Any]:
     return {key: CLEANERS[key](value) for key, value in values.items()}
 
 
-def _check_dates(start: date | None, due: date | None) -> None:
+def check_dates(start: date | None, due: date | None) -> None:
     if start is not None and due is not None and start > due:
         raise ValidationError(f"start date {start} is after due date {due}")
 
@@ -311,10 +313,13 @@ class Orbit:
         self.session = session
         self.actor = actor
         self.clock: Clock = clock or SystemClock()
+        # Events of one instance are one action for undo; None: not for undo.
+        self.batch: str | None = uuid4().hex
+        self.undoes: str | None = None
 
     # --- events ---------------------------------------------------------------
 
-    def _log(
+    def log(
         self,
         entity: Entity,
         entity_id: int,
@@ -333,6 +338,8 @@ class Orbit:
                 field=field,
                 old_value=to_text(old),
                 new_value=to_text(new),
+                batch=self.batch,
+                undoes=self.undoes,
             )
         )
 
@@ -360,18 +367,28 @@ class Orbit:
         """Statuses every row has entered, oldest first.
 
         SQLite reuses ids of deleted rows, so a row's history starts at its own creation.
+        What has been undone never happened.
         """
+        undone = self.session.execute(
+            select(Event.batch, Event.undoes)
+            .where(Event.undoes.is_not(None))
+            .group_by(Event.batch, Event.undoes)
+            .order_by(func.max(Event.id).desc())
+        )
+        dead = canceled_out([(batch, undoes) for batch, undoes in undone if batch])
         created = Event.action == Action.CREATE.value
         entered = case(
             (created, func.json_extract(Event.new_value, "$.status")), else_=Event.new_value
         )
         rows = self.session.execute(
-            select(Event.entity, Event.entity_id, Event.action, Event.at, entered)
+            select(Event.entity, Event.entity_id, Event.action, Event.at, entered, Event.batch)
             .where(or_(created, Event.field == "status"))
             .order_by(Event.id)
         )
         history: dict[tuple[str, int], list[tuple[Status, date]]] = {}
-        for entity, entity_id, action, at, status in rows:
+        for entity, entity_id, action, at, status, batch in rows:
+            if batch in dead:
+                continue
             key = (entity, entity_id)
             if action == Action.CREATE.value:
                 history[key] = []
@@ -389,7 +406,7 @@ class Orbit:
         row.done_at = now if row.status == Status.DONE else None
         self.session.add(row)
         self.session.flush()
-        self._log(entity, row.id, Action.CREATE, new=json.dumps(snapshot(row), ensure_ascii=False))
+        self.log(entity, row.id, Action.CREATE, new=json.dumps(snapshot(row), ensure_ascii=False))
         self.session.flush()
         return row
 
@@ -410,21 +427,21 @@ class Orbit:
         diff = {k: v for k, v in _clean(changes).items() if getattr(row, k) != v}
         if not diff:
             return row
-        _check_dates(diff.get("start_date", row.start_date), diff.get("due_date", row.due_date))
+        check_dates(diff.get("start_date", row.start_date), diff.get("due_date", row.due_date))
         validate(row, diff)
 
         now = self.clock.now()
         if "status" in diff:
             row.done_at = next_done_at(Status(row.status), Status(diff["status"]), row.done_at, now)
         for key, value in diff.items():
-            self._log(entity, row.id, Action.UPDATE, key, getattr(row, key), value)
+            self.log(entity, row.id, Action.UPDATE, key, getattr(row, key), value)
             setattr(row, key, value)
         row.updated_at = now
         self.session.flush()
         return row
 
-    def _delete(self, entity: Entity, row: Base, row_id: int) -> None:
-        self._log(entity, row_id, Action.DELETE, old=json.dumps(snapshot(row), ensure_ascii=False))
+    def delete_row(self, entity: Entity, row: Base, row_id: int) -> None:
+        self.log(entity, row_id, Action.DELETE, old=json.dumps(snapshot(row), ensure_ascii=False))
         self.session.delete(row)
         self.session.flush()
 
@@ -446,7 +463,7 @@ class Orbit:
             query = query.where(Project.archived_at.is_(None))
         return list(self.session.scalars(query))
 
-    def _ensure_slug_free(self, slug: str) -> None:
+    def ensure_slug_free(self, slug: str) -> None:
         if self.session.scalar(select(Project.id).where(Project.slug == slug)) is not None:
             raise ValidationError(f"project '{slug}' already exists")
 
@@ -478,15 +495,15 @@ class Orbit:
                 "github_url": github_url,
             }
         )
-        _check_dates(values["start_date"], values["due_date"])
-        self._ensure_slug_free(values["slug"])
+        check_dates(values["start_date"], values["due_date"])
+        self.ensure_slug_free(values["slug"])
         row = Project(**values, position=self._next_position(Project))
         return self._create(Entity.PROJECT, row)
 
     def update_project(self, slug: str, /, *, force: bool = False, **changes: Any) -> Project:
         def validate(row: Project, diff: dict[str, Any]) -> None:
             if "slug" in diff:
-                self._ensure_slug_free(diff["slug"])
+                self.ensure_slug_free(diff["slug"])
             if self._closing(diff) and not force:
                 milestones = self._count_open(Milestone, Milestone.project_id == row.id)
                 tasks = self._count_open(Task, Task.project_id == row.id)
@@ -504,7 +521,7 @@ class Orbit:
         project = self.get_project(slug)
         if project.archived_at is None:
             now = self.clock.now()
-            self._log(Entity.PROJECT, project.id, Action.UPDATE, "archived_at", None, now)
+            self.log(Entity.PROJECT, project.id, Action.UPDATE, "archived_at", None, now)
             project.archived_at = now
             project.updated_at = now
             self.session.flush()
@@ -514,7 +531,7 @@ class Orbit:
         project = self.get_project(slug)
         if project.archived_at is not None:
             now = self.clock.now()
-            self._log(Entity.PROJECT, project.id, Action.UPDATE, "archived_at", project.archived_at)
+            self.log(Entity.PROJECT, project.id, Action.UPDATE, "archived_at", project.archived_at)
             project.archived_at = None
             project.updated_at = now
             self.session.flush()
@@ -557,7 +574,7 @@ class Orbit:
                 "summary": summary,
             }
         )
-        _check_dates(values["start_date"], values["due_date"])
+        check_dates(values["start_date"], values["due_date"])
         position = self._next_position(Milestone, Milestone.project_id == project.id)
         row = Milestone(**values, project_id=project.id, position=position)
         return self._create(Entity.MILESTONE, row)
@@ -587,7 +604,7 @@ class Orbit:
         for task in tasks:
             if self.session.get(Task, task.id) is not None:  # may be gone as a subtask
                 self._delete_task_tree(task)
-        self._delete(Entity.MILESTONE, milestone, milestone.id)
+        self.delete_row(Entity.MILESTONE, milestone, milestone.id)
 
     # --- tasks ----------------------------------------------------------------
 
@@ -624,7 +641,7 @@ class Orbit:
                 stack.append(child.id)
         return result
 
-    def _check_task_links(
+    def check_task_links(
         self, project_id: int, milestone_id: int | None, parent_id: int | None, self_id: int | None
     ) -> None:
         if milestone_id is not None:
@@ -666,8 +683,8 @@ class Orbit:
                 "comment": comment,
             }
         )
-        _check_dates(values["start_date"], values["due_date"])
-        self._check_task_links(project.id, values["milestone_id"], values["parent_id"], None)
+        check_dates(values["start_date"], values["due_date"])
+        self.check_task_links(project.id, values["milestone_id"], values["parent_id"], None)
         if values["parent_id"] is not None and values["milestone_id"] is None:
             values["milestone_id"] = self.get_task(values["parent_id"]).milestone_id
         position = self._next_position(
@@ -686,7 +703,7 @@ class Orbit:
     def update_task(self, task_id: int, /, *, force: bool = False, **changes: Any) -> Task:
         def validate(row: Task, diff: dict[str, Any]) -> None:
             if "milestone_id" in diff or "parent_id" in diff:
-                self._check_task_links(
+                self.check_task_links(
                     row.project_id,
                     diff.get("milestone_id", row.milestone_id),
                     diff.get("parent_id", row.parent_id),
@@ -707,7 +724,7 @@ class Orbit:
     def _delete_task_tree(self, task: Task) -> None:
         for child in self._children(task.id):
             self._delete_task_tree(child)
-        self._delete(Entity.TASK, task, task.id)
+        self.delete_row(Entity.TASK, task, task.id)
 
     def delete_task(self, task_id: int, *, force: bool = False) -> None:
         task = self.get_task(task_id)

@@ -154,7 +154,11 @@ def started(monkeypatch: pytest.MonkeyPatch) -> list[int]:
     return ports
 
 
-def test_serve_backs_up_the_database_and_starts(filled_db: Path, started: list[int]) -> None:
+def test_serve_backs_up_the_database_and_starts(
+    filled_db: Path, started: list[int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The real orbit may be running on the default port right now.
+    monkeypatch.setattr("orbit.api.server.port_is_free", lambda _port: True)
     result = CliRunner().invoke(cli, ["--db", str(filled_db), "serve", "--no-open"])
     assert result.exit_code == 0, result.output
     assert "http://127.0.0.1:8420" in result.output

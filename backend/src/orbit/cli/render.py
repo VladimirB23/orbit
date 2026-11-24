@@ -92,6 +92,13 @@ def deleted(data: dict[str, Any]) -> None:
     console().print(f"deleted {d['entity']} #{d['id']}")
 
 
+def undone(data: dict[str, Any]) -> None:
+    what = ", ".join(data["fields"]) or data["action"]
+    more = f" and {data['count'] - 1} more inside" if data["count"] > 1 else ""
+    title = escape(data["title"])
+    console().print(f"taken back: {what} of {data['entity']} #{data['id']} {title}{more}")
+
+
 # --- lists --------------------------------------------------------------------
 
 
