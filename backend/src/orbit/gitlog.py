@@ -5,6 +5,8 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path, PureWindowsPath
 
+from orbit.domain.errors import ValidationError
+
 TIMEOUT_SECONDS = 20
 # A repository brings its own config: nothing from it may start another program.
 SAFE = ["-c", "core.fsmonitor=false", "-c", "log.showSignature=false", "--no-pager"]
@@ -29,9 +31,22 @@ def read_commits(folder: Path) -> list[tuple[str, datetime]] | None:
     """
     if not (folder / ".git").exists():
         return None
+    try:
+        return _parse(_run(folder))
+    except subprocess.CalledProcessError:  # broken, or owned by another user
+        return None
+    except FileNotFoundError:
+        raise ValidationError("git is not found: install it or add it to PATH") from None
+    except subprocess.TimeoutExpired:
+        raise ValidationError(f"git did not answer in {TIMEOUT_SECONDS} s: {folder}") from None
+
+
+def _run(folder: Path) -> str:
+    # Started from a git hook, orbit inherits GIT_DIR of another repository.
+    clean = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     done = subprocess.run(
         ["git", *SAFE, "-C", str(folder), *LOG],
-        env=os.environ | {"GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"},
+        env=clean | {"GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"},
         stdin=subprocess.DEVNULL,
         capture_output=True,
         encoding="utf-8",
@@ -39,8 +54,12 @@ def read_commits(folder: Path) -> list[tuple[str, datetime]] | None:
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         check=True,
     )
+    return done.stdout
+
+
+def _parse(output: str) -> list[tuple[str, datetime]]:
     commits = []
-    for line in done.stdout.splitlines():
+    for line in output.splitlines():
         sha, _, at = line.partition(" ")
         commits.append((sha, datetime.fromisoformat(at).astimezone(UTC)))
     return commits

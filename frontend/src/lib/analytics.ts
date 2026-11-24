@@ -179,7 +179,7 @@ export function quietText(row: FocusRow, today: Day): { text: string; late: bool
 
 // --- time --------------------------------------------------------------------
 
-export type Step = 'day' | 'week' | 'month';
+export type Step = Analytics['step'];
 
 const month = (date: Date) => MONTHS[date.getMonth()] ?? '';
 

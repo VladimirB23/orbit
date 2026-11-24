@@ -31,7 +31,7 @@ const words = (kind: Kind, n: number) =>
 
 export function ActivityChart({ data, className }: { data: Analytics; className?: string }) {
   const [kind, setKind] = usePersisted<Kind>('orbit.heat', 'sessions', asKind);
-  const unit = data.step as Step;
+  const unit = data.step;
   const rows = topRows(data.activity, MOST_ROWS);
   const totals = data.steps.map((_, i) => rows.reduce((sum, row) => sum + (row[kind][i] ?? 0), 0));
   const top = Math.max(...rows.flatMap((row) => row[kind]), 1);
@@ -107,7 +107,13 @@ export function ActivityChart({ data, className }: { data: Analytics; className?
                 {data.steps.map((step, i) => (
                   <th key={step} scope="col" className="h-5 whitespace-nowrap font-normal">
                     <span className="sr-only">{stepTitle(step, unit, data.today)}</span>
-                    <span aria-hidden="true" className="relative -mx-2 block">
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'relative -mx-2 block',
+                        !labelEvery(i, data.steps.length, 7) && '@max-2xl:hidden',
+                      )}
+                    >
                       {labelEvery(i, data.steps.length, 14) ? stepLabel(step, unit) : ''}
                     </span>
                   </th>

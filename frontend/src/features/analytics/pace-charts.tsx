@@ -8,7 +8,6 @@ import {
   labelEvery,
   lateText,
   planTitle,
-  type Step,
   stepLabel,
   stepTitle,
 } from '@/lib/analytics';
@@ -24,7 +23,7 @@ const tasks = (n: number) => `${n} ${plural(n, 'задача', 'задачи', '
 const STEPS_NEEDED = 3;
 
 export function ClosedChart({ data, className }: { data: Analytics; className?: string }) {
-  const unit = data.step as Step;
+  const unit = data.step;
   const count = data.steps.length;
   const total = (i: number) => (data.closed[i] ?? 0) + (data.born_closed[i] ?? 0);
   const peak = Math.max(...data.steps.map((_, i) => total(i)), 0);

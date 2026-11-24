@@ -100,7 +100,11 @@ class RepoSync(Sync):
                 current = (project.id, folder, fingerprint(folder))
                 if self._seen.get(slug) == current:
                     continue
-                commits = read_commits(folder)
+                try:
+                    commits = read_commits(folder)
+                except Exception:  # asked again when something changes there
+                    log.warning("commits of %s were not read", slug, exc_info=True)
+                    commits = None
                 if commits is not None:
                     orbit.import_commits(slug, [CommitRecord(sha, at) for sha, at in commits])
                     session.commit()

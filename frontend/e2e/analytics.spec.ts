@@ -242,3 +242,12 @@ test('every screen can be reached on a phone', async ({ page, orbit: _ }) => {
   }
   await expect(page.getByRole('button', { name: 'Новый проект' })).toBeInViewport({ ratio: 1 });
 });
+
+test('the overdue tile leads to the rows behind it', async ({ page, orbit: _ }) => {
+  await openAnalytics(page);
+  await tile(page, 'Просрочено').getByRole('link', { name: 'в дереве' }).click();
+  await expect(row(page, 'Window functions')).toBeVisible();
+  await expect(row(page, 'Reading List')).toBeHidden();
+  await page.goBack();
+  await expect(card(page, 'Где фокус')).toBeVisible();
+});

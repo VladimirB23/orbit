@@ -8,16 +8,17 @@
 
 ## Структура
 
-- `backend/src/orbit/`: `domain/` (правила, сервис `Orbit`, `events`), `db/` (модели, миграции Alembic),
+- `backend/src/orbit/`: `domain/` (правила, сервис `Orbit`, `events`, `analytics.py` и `sql/` - метрики), `db/` (модели, миграции Alembic),
   `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`, `journal.py` (разбор
-  журналов сессий из Obsidian), `sync.py` (импорт сам, пока работает сервер); тесты `backend/tests/`.
+  журналов сессий из Obsidian), `gitlog.py` (коммиты), `sync.py` (импорт сам, пока работает сервер), `export.py`
+  (CSV для Tableau), `seed.py` и `seed_history.py` (демо); тесты `backend/tests/`.
 - `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом.
 - `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны; `tree` и
-  `timeline` - два вида одних строк, `?screen=timeline`),
+  `timeline` - два вида одних строк, `?screen=timeline`; `analytics` - третий экран, `?screen=analytics`),
   `src/components/ui/` (shadcn), `src/index.css` (все цвета и отступы), `e2e/` (Playwright, свой сервер на тест).
-- `data/`: живая база `orbit.db`, настройки `orbit.toml` (`vault = '...'`), бэкапы, `demo.db` — только
-  локально, в git не попадает.
-- `docs/`: PRD, ADR, скриншоты.
+- `data/`: живая база `orbit.db`, настройки `orbit.toml` (`vault = '...'`, `auto_dates = true`), бэкапы, `demo*.db` —
+  только локально, в git не попадает. `out/` (выгрузки, макеты) тоже.
+- `docs/`: PRD, ADR, `metrics.md` (определения и SQL), `tableau.md` (дашборд по шагам).
 
 ## Команды
 
@@ -58,10 +59,14 @@ orbit log [--since 7d|12h|2w|YYYY-MM-DD] [--entity task --id 12] [--limit 50]
 orbit undo | redo                            # last action of the same actor (12 hours)
 orbit session import                         # journals of the vault -> sessions (orbit serve does it itself)
 orbit session list [project] [--limit 20]    # Claude sessions, newest first
+orbit commit import                          # commits from git of project folders (serve does it itself)
+orbit stats [project] [--days 30]            # attention: sessions, commits, closed, share against priority
+orbit export --csv out/tableau               # star of CSV for Tableau + DICTIONARY.md; real data is labelled
 orbit serve [--port 8420] [--no-open]        # API + UI on 127.0.0.1 only; daily backup on start
 orbit openapi                                # API schema (used by npm run gen:api)
 orbit backup [--dir path]                    # default data/backups/
 orbit seed --demo [--reset]                  # fictional data into data/demo.db (never orbit.db)
+orbit seed --demo --half-year [--until D]    # long history into data/demo-half-year.db, same D = same data
 orbit db info | db upgrade                   # path, revision, counts; migrations run automatically
 orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 ```
@@ -79,6 +84,9 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Изменил API: `npm run gen:api`, иначе упадет `test_contract.py`. Формат ответов `/api/v1` не ломать.
 - Новое поле строки: строка в `frontend/src/lib/columns.ts` и ветка в `features/tree/cells.tsx`. Один экземпляр `Orbit` = одно действие для отмены.
 - Что и где рисует таймлайн, решает `frontend/src/lib/timeline.ts` (тесты рядом); факт работы (`actual`) считает домен по `events`.
+- Метрика = файл в `domain/sql/` с комментарием, тест в `test_analytics.py`, определение в `docs/metrics.md`. Новая мера - строки в `activity_facts.sql`. Мало данных - график говорит, чего не хватает. Отмененное (`events.undoes`) в метрики не попадает.
+- Сроки Claude ставит сам, если они есть в разговоре (с источником); даты владельца не трогает, закрытому срок не ставит. Остальное ставит домен (`auto_dates`, ADR 0008).
+- Публиковать (Tableau Public, скриншоты, README) можно только данные из `demo*.db`.
 - Новая ссылка наружу: путь проверяется в `frontend/src/lib/links.ts`, сетевые пути и чужие схемы не ссылки.
 - Сервер слушает только `127.0.0.1`; открыть наружу можно только с токенами и новым ADR.
 - Реальная база никогда не попадает в git, скриншоты и демо — только на `orbit seed --demo`.

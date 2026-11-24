@@ -253,3 +253,57 @@ def test_server_reads_commits_only_when_told(
             time.sleep(0.4)
         found = wait_for_commits(db_file) if repos else count(engine)
     assert found == expected
+
+
+# --- trouble with git -----------------------------------------------------------------
+
+
+def test_git_variables_of_a_hook_do_not_lead_astray(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commit(repo, "one")
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "elsewhere"))
+    assert len(read_commits(repo) or []) == 1
+
+
+def test_a_broken_repository_is_not_read(tmp_path: Path) -> None:
+    (tmp_path / ".git").mkdir()
+    assert read_commits(tmp_path) is None
+
+
+def test_one_bad_folder_does_not_stop_the_others(
+    engine: Engine, repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def slow(folder: Path) -> list[tuple[str, datetime]] | None:
+        if folder == bad:
+            raise subprocess.TimeoutExpired("git", 20)
+        return read_commits(folder)
+
+    bad = tmp_path / "bad"
+    (bad / ".git").mkdir(parents=True)
+    commit(repo, "one")
+    add_project(engine, "a", bad)
+    add_project(engine, "b", repo)
+    monkeypatch.setattr("orbit.sync.read_commits", slow)
+    sync = RepoSync(engine)
+    assert sync.sync() == {"b": 1}
+    # And it is not asked again every fifteen seconds until something changes there.
+    monkeypatch.setattr("orbit.sync.read_commits", lambda _: pytest.fail("read again"))
+    assert sync.sync() == {}
+
+
+def test_command_without_git_says_so(
+    repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ORBIT_DB", str(tmp_path / "cli.db"))
+    runner = CliRunner()
+    runner.invoke(cli, ["project", "add", "a", "--name", "A", "--repo", str(repo)])
+
+    def missing(*_: object, **__: object) -> None:
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr("orbit.gitlog.subprocess.run", missing)
+    result = runner.invoke(cli, ["commit", "import"])
+    assert result.exit_code == 1
+    assert "git" in result.output
+    assert "Traceback" not in result.output

@@ -1656,8 +1656,7 @@
             "title": "End"
           },
           "step": {
-            "type": "string",
-            "title": "Step"
+            "$ref": "#/components/schemas/Step"
           },
           "steps": {
             "items": {
@@ -3167,6 +3166,14 @@
           "canceled"
         ],
         "title": "Status"
+      },
+      "Step": {
+        "type": "string",
+        "enum": [
+          "day",
+          "week",
+          "month"
+        ]
       },
       "TaskCreate": {
         "properties": {

@@ -1,6 +1,6 @@
 # Orbit — PRD
 
-v0.6 · 2026-11-25 · этапы 1-4 готовы; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`, таймлайн: `docs/adr/0005-timeline.md`, отмена и поля: `docs/adr/0006-undo-and-fields.md`
+v0.7 · 2026-11-25 · этапы 1-5 готовы; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`, таймлайн: `docs/adr/0005-timeline.md`, отмена и поля: `docs/adr/0006-undo-and-fields.md`, аналитика и экспорт: `docs/adr/0007-analytics.md`, автоматические сроки: `docs/adr/0008-automatic-dates.md`
 
 ## Проблема
 
@@ -32,12 +32,15 @@ v0.6 · 2026-11-25 · этапы 1-4 готовы; модель: `docs/adr/0002-
 | `tasks` | id, project_id, milestone_id?, parent_id?, title, status, priority, start_date, due_date, comment (до 280 симв.), position, created_at, updated_at, done_at |
 | `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value, batch (действие), undoes (что отменяет) |
 | `sessions` | id, external_id (id сессии Claude), project_id, started_at, ended_at, title, prompts, files, commits (числа), folder — импорт журналов сессий из Obsidian (ADR 0004) |
+| `commits` | id, project_id, sha, committed_at — из git папки проекта (ADR 0007) |
 
 - **Статусы** (одни для всех уровней): `backlog` → `planned` → `in_progress` → `paused` / `blocked` → `done` / `canceled`.
   Переходы свободные; закрыть или удалить элемент с открытыми потомками можно только с `--force` (ADR 0002).
 - **Приоритет:** 0–4 (none, low, medium, high, urgent), как в Linear.
 - **Прогресс** этапа = done / (все − canceled) по задачам; этап без задач — по своему статусу.
 - **Факт:** начало - первый день в `in_progress` (и всего внутри), конец - день закрытия; из `events` (ADR 0005).
+- **Сроки сами** (`auto_dates = true` в `data/orbit.toml`): пункт без срока получает его, когда становится
+  запланированным или в работе; идеи и паузы без срока (ADR 0008).
 - **Просрочено:** due_date < сегодня и статус не `done`/`canceled`.
 - **Кто изменил:** CLI пишет `actor` из переменной `ORBIT_ACTOR` (для сессий Claude = `claude`), интерфейс — `vladimir`.
 
@@ -57,20 +60,25 @@ v0.6 · 2026-11-25 · этапы 1-4 готовы; модель: `docs/adr/0002-
 5. **Таймлайн** (`G`): те же строки на шкале времени, план и факт, масштаб «Дни / Недели / Месяцы»;
    сроки тянутся мышью или клавишами, «Вернуть» отменяет.
 
-После MVP: аналитика, канбан.
+6. **Аналитика** (`A`): фокус по сессиям и коммитам, сроки, темп; фильтры по периоду и проекту.
+
+После MVP: вкладка "День" (планер и привычки), напоминания, канбан.
 
 ## Вкладка «Аналитика» (этап 5)
 
-Встроенная, на живых данных:
-- статусы по проектам (stacked bar);
-- просрочки и ближайшие дедлайны;
-- закрыто задач по неделям (throughput);
-- cycle time: дней от `in_progress` до `done`;
-- план/факт по этапам: дедлайн против фактического закрытия;
-- активность сессий Claude по проектам (из `sessions`).
+Встроенная, на живых данных. Сверху полоса фильтров (период, проект) и плитки: сессии, коммиты, закрытые
+задачи, проекты с движением, просрочки. Определения метрик и SQL: `docs/metrics.md`.
 
-**Tableau Public** — отдельно, для портфолио: `orbit export` → CSV → дашборд. Живого подключения
-к локальной SQLite у Tableau Public нет, поэтому встроенная вкладка для работы, Tableau для показа.
+- **Каждый день:** фокус по проектам (сессии и коммиты против приоритета, "мало внимания"), активность по
+  времени, сроки (просрочено и 14 дней), статусы задач на сегодня.
+- **Раз в неделю:** закрыто задач (throughput), cycle time, план и факт по этапам.
+
+Мало данных - график говорит, чего не хватает. Отмененное, созданное сразу закрытым и сроки задним числом
+показатели не улучшают.
+
+**Tableau Public** - отдельно, для портфолио: `orbit export` → CSV → дашборд, только на вымышленной истории за
+полгода. Инструкция: `docs/tableau.md`. Живого подключения к локальной SQLite у Tableau Public нет, поэтому
+встроенная вкладка для работы, Tableau для показа.
 
 ## CLI
 
@@ -83,10 +91,13 @@ orbit task add <project> "DB schema" --milestone 1
 orbit set task 12 --status done --comment "schema + migrations"
 orbit log --since 7d              # change history
 orbit session list [project]      # Claude sessions imported from the Obsidian journals
-orbit export --csv out/           # for Tableau (stage 5)
+orbit commit import               # commits from git of project folders
+orbit stats [project] --days 30   # where attention goes: sessions, commits, closed tasks
+orbit export --csv out/tableau    # facts and dimensions for Tableau, with a dictionary
 orbit undo | redo                 # last action of the same actor, within 12 hours
 orbit backup
 orbit seed --demo                 # fictional data into data/demo.db
+orbit seed --demo --half-year     # a long fictional history into data/demo-half-year.db
 orbit serve                       # API + UI on http://127.0.0.1:8420, this computer only
 ```
 У каждой команды есть `--json`: Claude читает машинный вывод, а не парсит таблицы.
@@ -117,7 +128,7 @@ orbit serve                       # API + UI on http://127.0.0.1:8420, this comp
 | 2   | API и интерфейс: дерево, панель, правка в ячейке, SSE                                | готово 24.11 (статус из CLI виден в UI за 2 с)      |
 | 3   | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | готово 24.11; затем разбор прошлых сессий в orbit + Obsidian |
 | 4   | Таймлайн этапов (Гант)                                                               | готово 24.11 (сроки тянутся мышью, план и факт)     |
-| 5   | Аналитика, `export`, дашборд Tableau Public                                          |                                                     |
+| 5   | Аналитика, `export`, дашборд Tableau Public                                          | код готов 25.11; дашборд собирает Владелец по `docs/tableau.md` |
 | 6   | Релиз: README ru/en, скриншоты, CI, публичный репозиторий (после «да»)               |                                                     |
 | 7   | MCP-сервер                                                                           | orbit доступен как инструменты в любой сессии       |
 
@@ -125,5 +136,5 @@ orbit serve                       # API + UI on http://127.0.0.1:8420, this comp
 
 ## Открытые вопросы
 
-- Какие 3 графика нужны каждый день? Решаем на этапе 5.
+- ~~Какие 3 графика нужны каждый день?~~ Решено 25.11: фокус по сессиям и коммитам, сроки, активность по времени (ADR 0007).
 - ~~Отдельный статус проекта «на паузе» или хватит `blocked`?~~ Решено: статус `paused` для всех уровней (ADR 0002). 

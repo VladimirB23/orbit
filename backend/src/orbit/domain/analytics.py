@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from functools import cache
 from importlib.resources import files
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import RowMapping, text
 
@@ -12,6 +12,8 @@ from orbit.domain.enums import Status
 from orbit.domain.errors import ValidationError
 from orbit.domain.rules import Attention, attention, attention_share
 from orbit.domain.service import Orbit, ReportItem
+
+type Step = Literal["day", "week", "month"]
 
 VIEWS = (
     "events_in_force",
@@ -25,7 +27,7 @@ DUE_DAYS = 14
 DAILY_UP_TO = 14  # days in a period
 WEEKLY_UP_TO = 200
 LONGEST_DAYS = 3660  # ten years; a typo in the year is not a period
-STRIDE = {"day": "+1 day", "week": "+7 days", "month": "+1 month"}
+STRIDE: dict[Step, str] = {"day": "+1 day", "week": "+7 days", "month": "+1 month"}
 
 # Below these a chart says what is missing instead of drawing a pattern out of noise.
 CYCLE_NEEDED = 10  # tasks with a known start
@@ -58,7 +60,7 @@ class Period:
         return Period(self.start - timedelta(days=self.days), self.start - timedelta(days=1))
 
     @property
-    def step(self) -> str:
+    def step(self) -> Step:
         if self.days <= DAILY_UP_TO:
             return "day"
         return "week" if self.days <= WEEKLY_UP_TO else "month"
@@ -181,7 +183,7 @@ class Analytics:
     today: date
     start: date
     end: date
-    step: str
+    step: Step
     steps: list[date]
     totals: Totals
     focus: list[FocusRow]
@@ -342,8 +344,10 @@ def _focus(orbit: Orbit, scope: dict[str, Any]) -> list[FocusRow]:
             ahead=row["ahead"],
         )
 
-    rows = [focus(row) for row in _rows(orbit, "focus", **scope, today=orbit.clock.today())]
-    return sorted(rows, key=lambda row: -row.share)
+    shown = every
+    if scope["project"] is not None:  # a share is still of everything: totals come from above
+        shown = _rows(orbit, "focus", **scope, today=orbit.clock.today())
+    return sorted(map(focus, shown), key=lambda row: -row.share)
 
 
 class _Series:

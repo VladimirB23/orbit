@@ -345,8 +345,7 @@ export interface components {
              * Format: date
              */
             end: string;
-            /** Step */
-            step: string;
+            step: components["schemas"]["Step"];
             /** Steps */
             steps: string[];
             totals: components["schemas"]["TotalsOut"];
@@ -820,6 +819,8 @@ export interface components {
          * @enum {string}
          */
         Status: "backlog" | "planned" | "in_progress" | "paused" | "blocked" | "done" | "canceled";
+        /** @enum {string} */
+        Step: "day" | "week" | "month";
         /** TaskCreate */
         TaskCreate: {
             /** Title */

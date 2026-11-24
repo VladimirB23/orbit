@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from orbit.domain.analytics import Step
 from orbit.domain.enums import Action, Actor, Entity, Status
 from orbit.domain.rules import Attention
 from orbit.domain.service import FocusKind
@@ -257,7 +258,7 @@ class AnalyticsOut(Out):
     today: date
     start: date
     end: date
-    step: str
+    step: Step
     steps: list[date]
     totals: TotalsOut
     focus: list[FocusRowOut]

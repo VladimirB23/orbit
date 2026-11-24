@@ -1,7 +1,8 @@
 /** Headline numbers. Every one says what it is compared with, or that there is nothing to compare. */
+import { Link } from '@tanstack/react-router';
 import type { Analytics, Measure } from '@/api/types';
-import { deltaText, inDays, isRunning, type Step, splitFocus } from '@/lib/analytics';
-import { dayDiff, plural } from '@/lib/dates';
+import { deltaText, inDays, isRunning, splitFocus } from '@/lib/analytics';
+import { dayDiff } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 export function Tiles({ data }: { data: Analytics }) {
@@ -52,12 +53,11 @@ export function Tiles({ data }: { data: Analytics }) {
       />
       <Tile
         name="Просрочено"
+        overdueLink
         value={String(late.length)}
         bad={late.length > 0}
         note={
-          next
-            ? `ближайший срок ${inDays(next.days)}: ${next.title}`
-            : `на две недели ${plural(0, 'срок', 'срока', 'сроков')} нет`
+          next ? `ближайший срок ${inDays(next.days)}: ${next.title}` : 'на две недели сроков нет'
         }
       />
     </dl>
@@ -84,7 +84,7 @@ function Counted({ data, name, measure, line, days }: CountedProps) {
               className={cn(
                 'min-w-px flex-1 rounded-t-[2px]',
                 line[i] ? 'bg-chart-bar' : 'bg-track',
-                isRunning(step, data.step as Step, data.today) && 'opacity-60',
+                isRunning(step, data.step, data.today) && 'opacity-60',
               )}
               style={{ height: `${Math.max(((line[i] ?? 0) / top) * 100, 6)}%` }}
             />
@@ -100,10 +100,12 @@ interface TileProps {
   value: string;
   note: string;
   bad?: boolean;
+  /** Shows the rows behind the number in the tree. */
+  overdueLink?: boolean;
   children?: React.ReactNode;
 }
 
-function Tile({ name, value, note, bad = false, children }: TileProps) {
+function Tile({ name, value, note, bad = false, overdueLink = false, children }: TileProps) {
   return (
     <div className="flex min-w-0 flex-col rounded-xl border border-border bg-card px-4 py-3">
       <dt className="text-muted-foreground text-sm">{name}</dt>
@@ -118,6 +120,15 @@ function Tile({ name, value, note, bad = false, children }: TileProps) {
             {value}
           </span>
           {children}
+          {overdueLink && bad && (
+            <Link
+              to="/"
+              search={({ project }) => ({ project, view: 'overdue' })}
+              className="mb-1 rounded-sm text-muted-foreground text-sm underline underline-offset-2 hover:text-foreground"
+            >
+              в дереве
+            </Link>
+          )}
         </span>
         <span className="mt-1 line-clamp-2 text-muted-foreground text-xs leading-snug" title={note}>
           {note}
