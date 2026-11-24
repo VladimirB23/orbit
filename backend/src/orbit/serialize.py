@@ -3,11 +3,11 @@
 from dataclasses import asdict
 from typing import Any
 
-from orbit.db.models import Event, Milestone, Project, Task
+from orbit.db.models import Event, Milestone, Project, Task, WorkSession
 from orbit.domain.service import MilestoneNode, ProjectNode, StatusReport, TaskNode, snapshot
 
 
-def row(obj: Project | Milestone | Task) -> dict[str, Any]:
+def row(obj: Project | Milestone | Task | WorkSession) -> dict[str, Any]:
     return snapshot(obj)
 
 

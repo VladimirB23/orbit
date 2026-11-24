@@ -7,14 +7,16 @@ All dates are relative to `today`: the demo always has overdue and upcoming item
 
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
+from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from orbit.db.models import Event, Milestone, Project, Task
+from orbit.db.models import Event, Milestone, Project, Task, WorkSession
 from orbit.domain.enums import Actor
 from orbit.domain.enums import Status as S
 from orbit.domain.service import Orbit
+from orbit.domain.sessions import SessionRecord
 
 
 @dataclass
@@ -54,6 +56,8 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
         start_date=d(-27),
         due_date=d(10),
         summary="Tableau dashboard for a fictional coffee chain: revenue, peak hours, loyalty",
+        obsidian_path="Inbox/coffee-dashboard/0. coffee-dashboard - Overview.md",
+        repo_path="D:\\Projects\\coffee-dashboard",
     )
     clock.at(27, 11)
     m_collect = claude.add_milestone("coffee-dashboard", "Data collection", due_date=d(-20))
@@ -121,6 +125,8 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
         priority=2,
         start_date=d(-25),
         summary="50 interview tasks: joins, CTEs, window functions",
+        obsidian_path="Inbox/sql-practice/0. sql-practice - Overview.md",
+        repo_path="D:\\Projects\\sql-practice",
     )
     m_joins = claude.add_milestone("sql-practice", "Joins and aggregates", due_date=d(-18))
     m_cte = claude.add_milestone("sql-practice", "CTEs", due_date=d(-10))
@@ -205,8 +211,39 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
     clock.at(3, 10)
     vlad.archive_project("portfolio-site")
 
+    claude.import_sessions(_demo_sessions(today))
     session.flush()
     return {
         model.__tablename__: session.scalar(select(func.count()).select_from(model)) or 0
-        for model in (Project, Milestone, Task, Event)
+        for model in (Project, Milestone, Task, Event, WorkSession)
     }
+
+
+def _demo_sessions(today: date) -> list[SessionRecord]:
+    # project, days ago, start hour, minutes, title, prompts, files, commits
+    rows = [
+        ("coffee-dashboard", 27, 11, 95, "Plan the dashboard and milestones", 9, 3, 1),
+        ("coffee-dashboard", 24, 13, 150, "Generate 50k fictional orders", 14, 6, 3),
+        ("coffee-dashboard", 18, 14, 125, "Clean duplicates and store names", 11, 8, 4),
+        ("coffee-dashboard", 9, 10, 80, "Revenue per hour in SQL", 7, 4, 2),
+        ("coffee-dashboard", 1, 19, 65, "Loyalty export: what is missing", 5, 1, 0),
+        ("sql-practice", 10, 20, 70, "Window functions, part one", 12, 2, 1),
+        ("sql-practice", 6, 21, 55, "Retention with LAG and LEAD", 8, 2, 1),
+    ]
+    sessions = []
+    for slug, days_ago, hour, minutes, title, prompts, files, commits in rows:
+        start = datetime.combine(today - timedelta(days=days_ago), time(hour)).astimezone(UTC)
+        sessions.append(
+            SessionRecord(
+                external_id=str(uuid5(NAMESPACE_URL, f"orbit-demo/{slug}/{days_ago}")),
+                project=slug,
+                started_at=start,
+                ended_at=start + timedelta(minutes=minutes),
+                title=title,
+                prompts=prompts,
+                files=files,
+                commits=commits,
+                folder=f"D:\\Projects\\{slug}",
+            )
+        )
+    return sessions

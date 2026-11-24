@@ -17,7 +17,7 @@ from orbit.db.engine import (
 from orbit.db.models import Base
 from orbit.domain.enums import Status
 
-TABLES = {"projects", "milestones", "tasks", "events"}
+TABLES = {"projects", "milestones", "tasks", "events", "sessions"}
 NOW = "2026-11-24 10:00:00"
 
 
@@ -106,3 +106,14 @@ def test_new_database_needs_no_copy(db_file: Path) -> None:
     ensure_schema(fresh)
     fresh.dispose()
     assert not (db_file.parent / "backups").exists()
+
+
+def test_data_of_the_first_version_survives_the_sessions_migration(db_file: Path) -> None:
+    engine = make_engine(db_file)
+    upgrade(engine, "0001")
+    _insert_project(engine)
+    ensure_schema(engine)
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT slug FROM projects")).scalars().all() == ["p"]
+        assert conn.execute(text("SELECT count(*) FROM sessions")).scalar() == 0
+    engine.dispose()

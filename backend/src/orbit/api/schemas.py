@@ -124,6 +124,19 @@ class EventOut(Out):
     new_value: str | None
 
 
+class SessionOut(Out):
+    id: int
+    external_id: str
+    project_id: int
+    started_at: datetime
+    ended_at: datetime
+    title: str
+    prompts: int
+    files: int
+    commits: int
+    folder: str | None
+
+
 class LimitsOut(BaseModel):
     name: int
     title: int
@@ -141,6 +154,7 @@ class MetaOut(BaseModel):
     database: DatabaseOut
     limits: LimitsOut
     upcoming_days: int
+    vault: str | None  # name of the Obsidian vault, for links; its path stays here
 
 
 class ErrorBody(BaseModel):

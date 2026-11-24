@@ -58,6 +58,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sessions
+         * @description Claude sessions, newest first.
+         */
+        get: operations["sessions_api_v1_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects": {
         parameters: {
             query?: never;
@@ -307,6 +327,8 @@ export interface components {
             limits: components["schemas"]["LimitsOut"];
             /** Upcoming Days */
             upcoming_days: number;
+            /** Vault */
+            vault: string | null;
         };
         /** MilestoneCreate */
         MilestoneCreate: {
@@ -483,6 +505,35 @@ export interface components {
             github_url?: string | null;
             /** Position */
             position?: number | null;
+        };
+        /** SessionOut */
+        SessionOut: {
+            /** Id */
+            id: number;
+            /** External Id */
+            external_id: string;
+            /** Project Id */
+            project_id: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Ended At
+             * Format: date-time
+             */
+            ended_at: string;
+            /** Title */
+            title: string;
+            /** Prompts */
+            prompts: number;
+            /** Files */
+            files: number;
+            /** Commits */
+            commits: number;
+            /** Folder */
+            folder: string | null;
         };
         /** SignalsOut */
         SignalsOut: {
@@ -760,6 +811,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    sessions_api_v1_sessions_get: {
+        parameters: {
+            query?: {
+                project?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"][];
                 };
             };
             /** @description Forbidden */

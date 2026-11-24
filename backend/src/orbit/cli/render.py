@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 from rich.tree import Tree
 
@@ -67,7 +68,7 @@ def item(data: dict[str, Any], title: str) -> None:
         elif key.endswith("_at"):
             table.add_row(key, _local(value))
         else:
-            table.add_row(key, "" if value is None else str(value))
+            table.add_row(key, "" if value is None else escape(str(value)))
     out.print(table)
     if data.get("history"):
         out.print()
@@ -104,11 +105,11 @@ def projects(rows: list[dict[str, Any]]) -> None:
         archived = " [dim](archived)[/]" if p.get("archived_at") else ""
         table.add_row(
             p["slug"] + archived,
-            p["name"],
+            escape(p["name"]),
             _status(p["status"]),
             _pct(p.get("progress")),
             _due(p, p.get("overdue", False)),
-            p.get("summary") or "",
+            escape(p.get("summary") or ""),
         )
     out.print(table)
 
@@ -122,11 +123,11 @@ def milestones(rows: list[dict[str, Any]]) -> None:
     for m in rows:
         table.add_row(
             str(m["id"]),
-            m["name"],
+            escape(m["name"]),
             _status(m["status"]),
             _pct(m.get("progress")),
             _due(m, m.get("overdue", False)),
-            m.get("summary") or "",
+            escape(m.get("summary") or ""),
         )
     out.print(table)
 
@@ -142,11 +143,11 @@ def tasks(rows: list[dict[str, Any]]) -> None:
             str(t["id"]),
             t.get("project", ""),
             "" if t["milestone_id"] is None else str(t["milestone_id"]),
-            ("  " if t["parent_id"] else "") + t["title"],
+            ("  " if t["parent_id"] else "") + escape(t["title"]),
             _status(t["status"]),
             PRIORITY_LABEL.get(t["priority"], ""),
             _due(t, t.get("overdue", False)),
-            t.get("comment") or "",
+            escape(t.get("comment") or ""),
         )
     out.print(table)
 
@@ -165,10 +166,37 @@ def events(rows: list[dict[str, Any]], title: str | None = None) -> None:
             f"{e['entity']} #{e['entity_id']}",
             e["action"],
             e["field"] or "",
-            "" if is_snapshot else (e["old_value"] or ""),
-            "" if is_snapshot else (e["new_value"] or ""),
+            "" if is_snapshot else escape(e["old_value"] or ""),
+            "" if is_snapshot else escape(e["new_value"] or ""),
         )
     out.print(table)
+
+
+def sessions(rows: list[dict[str, Any]]) -> None:
+    out = console()
+    if not rows:
+        out.print("no sessions")
+        return
+    table = Table("started", "project", "title", "prompts", "files", "commits")
+    for s in rows:
+        table.add_row(
+            _local(s["started_at"]),
+            s["project"],
+            escape(s["title"]),
+            str(s["prompts"]),
+            str(s["files"]),
+            str(s["commits"]),
+        )
+    out.print(table)
+
+
+def session_import(data: dict[str, Any]) -> None:
+    out = console()
+    out.print(f"added {data['added']}, updated {data['updated']}, unchanged {data['unchanged']}")
+    for slug, count in data["unknown_projects"].items():
+        out.print(f"skipped {count}: no project '{escape(slug)}' in orbit")
+    if data["unreadable"]:
+        out.print(f"skipped {data['unreadable']}: entry not understood")
 
 
 # --- tree and status ----------------------------------------------------------
@@ -178,10 +206,10 @@ def _task_branch(parent: Tree, node: dict[str, Any]) -> None:
     t = node["task"]
     label = _join(
         f"[dim]#{t['id']}[/]",
-        t["title"],
+        escape(t["title"]),
         _status(t["status"]),
         _due(t, node["overdue"]),
-        f"[italic]{t['comment']}[/]" if t.get("comment") else "",
+        f"[italic]{escape(t['comment'])}[/]" if t.get("comment") else "",
     )
     branch = parent.add(label)
     for child in node["children"]:
@@ -197,11 +225,11 @@ def tree(nodes: list[dict[str, Any]]) -> None:
         p = node["project"]
         root = Tree(
             _join(
-                f"[bold]{p['name']}[/] [dim]({p['slug']})[/]",
+                f"[bold]{escape(p['name'])}[/] [dim]({p['slug']})[/]",
                 _status(p["status"]),
                 _pct(node["progress"]),
                 _due(p, node["overdue"]),
-                f"[italic]{p['summary']}[/]" if p.get("summary") else "",
+                f"[italic]{escape(p['summary'])}[/]" if p.get("summary") else "",
             )
         )
         for m_node in node["milestones"]:
@@ -209,11 +237,11 @@ def tree(nodes: list[dict[str, Any]]) -> None:
             branch = root.add(
                 _join(
                     f"[dim]#{m['id']}[/]",
-                    f"[bold]{m['name']}[/]",
+                    f"[bold]{escape(m['name'])}[/]",
                     _status(m["status"]),
                     _pct(m_node["progress"]),
                     _due(m, m_node["overdue"]),
-                    f"[italic]{m['summary']}[/]" if m.get("summary") else "",
+                    f"[italic]{escape(m['summary'])}[/]" if m.get("summary") else "",
                 )
             )
             for t_node in m_node["tasks"]:
@@ -242,7 +270,7 @@ def status(data: dict[str, Any]) -> None:
                 r["project"],
                 r["entity"],
                 str(r["id"]),
-                r["title"],
+                escape(r["title"]),
                 _status(r["status"]),
                 r["due_date"] or "",
             )
@@ -254,4 +282,4 @@ def status(data: dict[str, Any]) -> None:
 def plain(data: dict[str, Any]) -> None:
     out = console()
     for key, value in data.items():
-        out.print(f"[bold]{key}[/]: {value}")
+        out.print(f"[bold]{key}[/]: {escape(str(value))}")

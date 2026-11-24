@@ -163,3 +163,26 @@ def test_db_option_overrides_env(run: Any, tmp_path: Path) -> None:
     run("--db", str(other), "project", "add", "a", "--name", "A")
     assert as_json(run("project", "list", "--json")) == []
     assert len(as_json(run("--db", str(other), "project", "list", "--json"))) == 1
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ("tree",),
+        ("status",),
+        ("project", "list"),
+        ("project", "show", "a"),
+        ("milestone", "list", "a"),
+        ("task", "list", "a"),
+        ("log",),
+    ],
+)
+def test_square_brackets_in_texts_are_not_markup(run: Any, command: tuple[str, ...]) -> None:
+    text = "fix [/bold] tag"
+    run("project", "add", "a", "--name", text, "--status", "in_progress", "--summary", text)
+    run("milestone", "add", "a", text)
+    run("task", "add", "a", text, "--comment", text)
+    run("set", "project", "a", "--summary", f"new {text}")
+    result = run(*command)
+    assert result.exit_code == 0, result.output
+    assert "[/bold]" in result.output

@@ -55,6 +55,7 @@ def meta(state: StateDep) -> s.MetaOut:
             name=NAME_MAX, title=TITLE_MAX, summary=SUMMARY_MAX, comment=COMMENT_MAX
         ),
         upcoming_days=UPCOMING_DAYS,
+        vault=state.vault.name if state.vault else None,
     )
 
 
@@ -77,6 +78,17 @@ def events(
     """Change journal, newest first."""
     rows = orbit.events(entity=entity, entity_id=id, limit=limit)
     return [s.EventOut.model_validate(row) for row in reversed(rows)]
+
+
+@router.get("/sessions")
+def sessions(
+    orbit: OrbitDep,
+    project: str | None = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+) -> list[s.SessionOut]:
+    """Claude sessions, newest first."""
+    rows = orbit.sessions(project, limit=limit)
+    return [s.SessionOut.model_validate(row) for row in rows]
 
 
 # --- projects -----------------------------------------------------------------

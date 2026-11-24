@@ -272,6 +272,109 @@
         }
       }
     },
+    "/api/v1/sessions": {
+      "get": {
+        "summary": "Sessions",
+        "description": "Claude sessions, newest first.",
+        "operationId": "sessions_api_v1_sessions_get",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionOut"
+                  },
+                  "title": "Response Sessions Api V1 Sessions Get"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/projects": {
       "post": {
         "summary": "Create Project",
@@ -1414,6 +1517,17 @@
           "upcoming_days": {
             "type": "integer",
             "title": "Upcoming Days"
+          },
+          "vault": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vault"
           }
         },
         "type": "object",
@@ -1421,7 +1535,8 @@
           "version",
           "database",
           "limits",
-          "upcoming_days"
+          "upcoming_days",
+          "vault"
         ],
         "title": "MetaOut"
       },
@@ -2117,6 +2232,73 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ProjectPatch"
+      },
+      "SessionOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "external_id": {
+            "type": "string",
+            "title": "External Id"
+          },
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ended At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "prompts": {
+            "type": "integer",
+            "title": "Prompts"
+          },
+          "files": {
+            "type": "integer",
+            "title": "Files"
+          },
+          "commits": {
+            "type": "integer",
+            "title": "Commits"
+          },
+          "folder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Folder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "external_id",
+          "project_id",
+          "started_at",
+          "ended_at",
+          "title",
+          "prompts",
+          "files",
+          "commits",
+          "folder"
+        ],
+        "title": "SessionOut"
       },
       "SignalsOut": {
         "properties": {

@@ -15,7 +15,17 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from orbit.db.models import COMMENT_MAX, SUMMARY_MAX, Base, Event, Milestone, Project, Task
+from orbit.db.models import (
+    COMMENT_MAX,
+    SESSION_TITLE_MAX,
+    SUMMARY_MAX,
+    Base,
+    Event,
+    Milestone,
+    Project,
+    Task,
+    WorkSession,
+)
 from orbit.domain.clock import Clock, SystemClock
 from orbit.domain.enums import CLOSED_STATUSES, Action, Actor, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, ValidationError
@@ -28,6 +38,7 @@ from orbit.domain.rules import (
     parse_status,
     project_progress,
 )
+from orbit.domain.sessions import SessionImport, SessionRecord
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SLUG_MAX = 64
@@ -749,6 +760,57 @@ class Orbit:
                     tasks=loose,
                 )
             )
+        return result
+
+    # --- sessions -------------------------------------------------------------
+
+    def sessions(
+        self, project_slug: str | None = None, limit: int | None = None
+    ) -> list[WorkSession]:
+        """Newest first."""
+        query = select(WorkSession).order_by(WorkSession.started_at.desc(), WorkSession.id.desc())
+        if project_slug is not None:
+            query = query.where(WorkSession.project_id == self.get_project(project_slug).id)
+        if limit:
+            query = query.limit(limit)
+        return list(self.session.scalars(query))
+
+    def import_sessions(self, records: Iterable[SessionRecord]) -> SessionImport:
+        """Facts about the past, not edits of the plan: nothing goes to events."""
+        result = SessionImport()
+        projects = {p.slug: p.id for p in self.list_projects(include_archived=True)}
+        known = {row.external_id: row for row in self.session.scalars(select(WorkSession))}
+        for record in records:
+            project_id = projects.get(record.project)
+            if project_id is None:
+                count = result.unknown_projects.get(record.project, 0)
+                result.unknown_projects[record.project] = count + 1
+                continue
+            values = {
+                "project_id": project_id,
+                "started_at": record.started_at,
+                "ended_at": record.ended_at,
+                "title": record.title[:SESSION_TITLE_MAX],
+                "prompts": record.prompts,
+                "files": record.files,
+                "commits": record.commits,
+                "folder": record.folder,
+            }
+            row = known.get(record.external_id)
+            if row is None:
+                row = WorkSession(external_id=record.external_id, **values)
+                known[record.external_id] = row
+                self.session.add(row)
+                result.added += 1
+                continue
+            diff = {key: value for key, value in values.items() if getattr(row, key) != value}
+            for key, value in diff.items():
+                setattr(row, key, value)
+            if diff:
+                result.updated += 1
+            else:
+                result.unchanged += 1
+        self.session.flush()
         return result
 
     # --- status report --------------------------------------------------------

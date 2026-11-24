@@ -1,4 +1,4 @@
-"""SQLAlchemy 2.0-style models: projects, milestones, tasks, events."""
+"""SQLAlchemy 2.0-style models: projects, milestones, tasks, events, sessions."""
 
 from datetime import date, datetime
 
@@ -19,6 +19,7 @@ NAMING_CONVENTION = {
 
 SUMMARY_MAX = 140
 COMMENT_MAX = 280
+SESSION_TITLE_MAX = 300
 
 
 def _in(column: str, values: list[str]) -> str:
@@ -131,3 +132,22 @@ class Event(Base):
     field: Mapped[str | None] = mapped_column(String(50))
     old_value: Mapped[str | None] = mapped_column(Text)
     new_value: Mapped[str | None] = mapped_column(Text)
+
+
+class WorkSession(Base):
+    """A Claude session, imported from the journals. Not a SQLAlchemy Session."""
+
+    __tablename__ = "sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    external_id: Mapped[str] = mapped_column(String(64), unique=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    started_at: Mapped[datetime] = mapped_column(UTCDateTime(), index=True)
+    ended_at: Mapped[datetime] = mapped_column(UTCDateTime())
+    title: Mapped[str] = mapped_column(String(SESSION_TITLE_MAX))
+    prompts: Mapped[int] = mapped_column(Integer)
+    files: Mapped[int] = mapped_column(Integer)
+    commits: Mapped[int] = mapped_column(Integer)
+    folder: Mapped[str | None] = mapped_column(String(500))

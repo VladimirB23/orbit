@@ -6,7 +6,7 @@ import re
 import webbrowser
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from http.client import HTTPConnection, HTTPException
 from pathlib import Path
@@ -18,14 +18,21 @@ from sqlalchemy.orm import Session
 
 from orbit import __version__, serialize
 from orbit.cli import render
-from orbit.config import DEFAULT_DB_PATH, DEFAULT_PORT, DEMO_DB_PATH
+from orbit.config import (
+    DEFAULT_DB_PATH,
+    DEFAULT_PORT,
+    DEMO_DB_PATH,
+    load_settings,
+    settings_file,
+)
 from orbit.db.backup import auto_backup, backup_dir, copy_database
 from orbit.db.engine import current_revision, ensure_schema, head_revision, make_engine
-from orbit.db.models import Event, Milestone, Project, Task
+from orbit.db.models import Event, Milestone, Project, Task, WorkSession
 from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, OrbitError, ValidationError
 from orbit.domain.rules import actor_from_env, is_overdue
 from orbit.domain.service import Orbit
+from orbit.journal import read_journals
 from orbit.seed import seed_demo
 
 app = typer.Typer(
@@ -37,10 +44,12 @@ app = typer.Typer(
 project_app = typer.Typer(help="Projects (addressed by slug).", no_args_is_help=True)
 milestone_app = typer.Typer(help="Milestones (addressed by id).", no_args_is_help=True)
 task_app = typer.Typer(help="Tasks (addressed by id).", no_args_is_help=True)
+session_app = typer.Typer(help="Claude sessions from the journals.", no_args_is_help=True)
 db_app = typer.Typer(help="Database maintenance.", no_args_is_help=True)
 app.add_typer(project_app, name="project")
 app.add_typer(milestone_app, name="milestone")
 app.add_typer(task_app, name="task")
+app.add_typer(session_app, name="session")
 app.add_typer(db_app, name="db")
 
 EXIT_CODES: dict[type[OrbitError], tuple[int, str]] = {
@@ -553,6 +562,49 @@ def set_(
     execute(ctx, json_out, action, renderers[entity])
 
 
+# --- sessions -----------------------------------------------------------------
+
+
+@session_app.command("import")
+def session_import(ctx: typer.Context, json_out: JsonOpt = False) -> None:
+    """Read session journals from the Obsidian vault (orbit serve also does it itself)."""
+    db: Path = ctx.obj.db
+
+    def action(o: Orbit) -> dict[str, Any]:
+        vault = load_settings(db, os.environ).vault
+        if vault is None:
+            raise ValidationError(
+                f"no Obsidian vault: write vault = 'D:\\path\\to\\vault'"
+                f" into {settings_file(db)} or set ORBIT_VAULT"
+            )
+        if not vault.is_dir():
+            raise NotFoundError(f"vault {vault} not found")
+        journal = read_journals(vault)
+        result = o.import_sessions(journal.records)
+        return asdict(result) | {"unreadable": journal.unreadable}
+
+    execute(ctx, json_out, action, render.session_import)
+
+
+@session_app.command("list")
+def session_list(
+    ctx: typer.Context,
+    project: Annotated[str | None, typer.Argument(help="Project slug.")] = None,
+    limit: Annotated[int, typer.Option(help="Show at most N latest sessions.")] = 20,
+    json_out: JsonOpt = False,
+) -> None:
+    """Claude sessions, newest first."""
+
+    def action(o: Orbit) -> list[dict[str, Any]]:
+        slugs = {p.id: p.slug for p in o.list_projects(include_archived=True)}
+        return [
+            serialize.row(s) | {"project": slugs[s.project_id]}
+            for s in o.sessions(project, limit=limit)
+        ]
+
+    execute(ctx, json_out, action, render.sessions)
+
+
 # --- server -------------------------------------------------------------------
 # FastAPI is imported only here: every other command stays fast.
 
@@ -602,7 +654,12 @@ def serve(
     if copied is not None:
         typer.echo(f"backup: {copied}")
     typer.echo(f"orbit with {db.name}: {url} (Ctrl+C to stop)")
-    run_server(create_app(db), port, on_ready=lambda: open_ and webbrowser.open(url))
+    try:
+        vault = load_settings(db, os.environ).vault
+    except OrbitError as exc:
+        fail(exc, json_out=False)
+        return
+    run_server(create_app(db, vault=vault), port, on_ready=lambda: open_ and webbrowser.open(url))
 
 
 @app.command()
@@ -649,13 +706,15 @@ def db_info(ctx: typer.Context, json_out: JsonOpt = False) -> None:
         engine = o.session.get_bind()
         counts = {
             model.__tablename__: o.session.scalar(select(func.count()).select_from(model)) or 0
-            for model in (Project, Milestone, Task, Event)
+            for model in (Project, Milestone, Task, Event, WorkSession)
         }
+        vault = load_settings(ctx.obj.db, os.environ).vault
         return {
             "path": str(ctx.obj.db),
             "revision": current_revision(engine.engine),
             "head": head_revision(),
             "actor": o.actor.value,
+            "vault": str(vault) if vault else None,
             **counts,
         }
 

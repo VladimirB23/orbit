@@ -15,3 +15,4 @@ class AppState:
     engine: Engine
     clock: Clock
     feed: ChangeFeed
+    vault: Path | None = None

@@ -42,6 +42,17 @@ def test_demo_has_an_archived_project(session: Session, clock: FakeClock) -> Non
     assert len(orbit.list_projects(include_archived=True)) > len(orbit.list_projects())
 
 
+def test_demo_projects_have_folders_notes_and_sessions(session: Session, clock: FakeClock) -> None:
+    seed_demo(session, today=TODAY)
+    orbit = Orbit(session, actor=Actor.SYSTEM, clock=clock)
+    main = orbit.get_project("coffee-dashboard")
+    assert main.repo_path and main.obsidian_path
+    sessions = orbit.sessions("coffee-dashboard")
+    assert len(sessions) >= 3
+    assert all(s.ended_at > s.started_at for s in sessions)
+    assert any(p.repo_path is None for p in orbit.list_projects())
+
+
 # --- CLI ----------------------------------------------------------------------
 
 
