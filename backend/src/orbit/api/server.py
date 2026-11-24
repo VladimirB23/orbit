@@ -2,6 +2,7 @@
 
 import socket
 from collections.abc import Callable
+from contextlib import suppress
 
 import uvicorn
 from fastapi import FastAPI
@@ -45,7 +46,9 @@ class OrbitServer(uvicorn.Server):
 
 
 def run(app: FastAPI, port: int, on_ready: Callable[[], object] | None = None) -> None:
-    OrbitServer(server_config(app, port), on_ready).run()
+    # uvicorn repeats Ctrl+C after a clean stop; it has already done its job.
+    with suppress(KeyboardInterrupt):
+        OrbitServer(server_config(app, port), on_ready).run()
 
 
 def port_is_free(port: int) -> bool:

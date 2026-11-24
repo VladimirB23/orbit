@@ -8,7 +8,12 @@ const api = process.env.ORBIT_API ?? 'http://127.0.0.1:8420';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy: { '/api': api } },
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true, // Host stays as the browser sent it: the server compares it with Origin.
+    proxy: { '/api': { target: api, changeOrigin: false } },
+  },
   // Served from this computer: one file is fine, there is nothing to split yet.
   build: { target: 'es2023', chunkSizeWarningLimit: 1000 },
   test: {
