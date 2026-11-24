@@ -6,6 +6,7 @@ import re
 import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Annotated, Any
@@ -16,13 +17,14 @@ from sqlalchemy.orm import Session
 
 from orbit import __version__, serialize
 from orbit.cli import render
-from orbit.config import db_path
+from orbit.config import DEFAULT_DB_PATH, DEMO_DB_PATH
 from orbit.db.engine import current_revision, ensure_schema, head_revision, make_engine
 from orbit.db.models import Event, Milestone, Project, Task
 from orbit.domain.enums import CLOSED_STATUSES, Entity, Status
 from orbit.domain.errors import ConflictError, NotFoundError, OrbitError, ValidationError
 from orbit.domain.rules import actor_from_env, is_overdue
 from orbit.domain.service import Orbit
+from orbit.seed import seed_demo
 
 app = typer.Typer(
     help="Orbit: projects, milestones and tasks with statuses and deadlines.",
@@ -65,6 +67,12 @@ CommentOpt = Annotated[str | None, typer.Option("--comment", help="Up to 280 cha
 # --- plumbing -----------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class State:
+    db: Path
+    explicit: bool  # --db or ORBIT_DB was given
+
+
 @app.callback()
 def root(
     ctx: typer.Context,
@@ -74,7 +82,7 @@ def root(
     ] = None,
 ) -> None:
     """Orbit: projects, milestones and tasks with statuses and deadlines."""
-    ctx.obj = db.expanduser().resolve() if db else db_path()
+    ctx.obj = State(db.expanduser().resolve() if db else DEFAULT_DB_PATH, explicit=db is not None)
 
 
 @contextmanager
@@ -113,7 +121,7 @@ def execute(
     human: Callable[[Any], None],
 ) -> None:
     try:
-        with open_orbit(ctx.obj) as orbit:
+        with open_orbit(ctx.obj.db) as orbit:
             data = action(orbit)
     except OrbitError as exc:
         fail(exc, json_out)
@@ -555,7 +563,7 @@ def backup(
     json_out: JsonOpt = False,
 ) -> None:
     """Consistent copy of the database (SQLite backup API, safe while in use)."""
-    source: Path = ctx.obj
+    source: Path = ctx.obj.db
     engine = make_engine(source)
     try:
         ensure_schema(engine)
@@ -586,7 +594,7 @@ def db_info(ctx: typer.Context, json_out: JsonOpt = False) -> None:
             for model in (Project, Milestone, Task, Event)
         }
         return {
-            "path": str(ctx.obj),
+            "path": str(ctx.obj.db),
             "revision": current_revision(engine.engine),
             "head": head_revision(),
             "actor": o.actor.value,
@@ -602,9 +610,49 @@ def db_upgrade(ctx: typer.Context, json_out: JsonOpt = False) -> None:
     execute(
         ctx,
         json_out,
-        lambda o: {"path": str(ctx.obj), "revision": head_revision()},
+        lambda o: {"path": str(ctx.obj.db), "revision": head_revision()},
         render.plain,
     )
+
+
+@app.command()
+def seed(
+    ctx: typer.Context,
+    demo: Annotated[bool, typer.Option("--demo", help="Fill with fictional demo data.")] = False,
+    reset: Annotated[bool, typer.Option("--reset", help="Recreate the database first.")] = False,
+    json_out: JsonOpt = False,
+) -> None:
+    """Demo data for screenshots (default target: data/demo.db, never data/orbit.db)."""
+    state: State = ctx.obj
+    target = state.db if state.explicit else DEMO_DB_PATH
+    try:
+        if not demo:
+            raise ValidationError("only demo data is supported: orbit seed --demo")
+        if target.resolve() == DEFAULT_DB_PATH.resolve():
+            raise ValidationError(
+                f"refusing to seed the real database {target}; pass --db with another file"
+            )
+        if reset:
+            for suffix in ("", "-wal", "-shm"):
+                Path(f"{target}{suffix}").unlink(missing_ok=True)
+        engine = make_engine(target)
+        try:
+            ensure_schema(engine)
+            with Session(engine) as session:
+                if session.scalar(select(func.count()).select_from(Project)):
+                    raise ConflictError(f"{target} is not empty; use --reset to recreate it")
+                counts = seed_demo(session, today=date.today())
+                session.commit()
+        finally:
+            engine.dispose()
+    except OrbitError as exc:
+        fail(exc, json_out)
+        return
+    data = {"path": str(target), **counts}
+    if json_out:
+        emit_json(data)
+    else:
+        render.plain(data)
 
 
 @app.command()

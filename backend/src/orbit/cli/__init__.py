@@ -2,7 +2,7 @@
 
 import sys
 
-from orbit.cli.app import app
+from orbit.cli.commands import app
 
 
 def main() -> None:

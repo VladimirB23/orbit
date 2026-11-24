@@ -19,7 +19,7 @@
 
 Разработка (из `backend/`):
 
-```
+```sh
 uv sync                                  # environment
 uv run pytest                            # tests
 uv run ruff check . ; uv run ruff format .
@@ -32,7 +32,7 @@ CLI. Запуск: `bin/orbit ...` (Git Bash) или `bin\orbit.cmd ...` (PowerS
 `uv run python -m orbit`. У каждой команды есть `--json`; ошибки: код 1 (ввод), 3 (не найдено),
 4 (нужен `--force`).
 
-```
+```sh
 orbit status [--days 7]                      # in progress, blocked, overdue, upcoming
 orbit tree [project] [--all]                 # tree with progress; --all = with archived
 orbit project add <slug> --name "..." [--status --priority --start --due --summary --obsidian --repo --github]
@@ -46,6 +46,7 @@ orbit set project|milestone|task <slug|id> [--name --title --slug --status --pri
                                              # 'none' clears a field: --due none
 orbit log [--since 7d|12h|2w|YYYY-MM-DD] [--entity task --id 12] [--limit 50]
 orbit backup [--dir path]                    # default data/backups/
+orbit seed --demo [--reset]                  # fictional data into data/demo.db (never orbit.db)
 orbit db info | db upgrade                   # path, revision, counts; migrations run automatically
 orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 ```
