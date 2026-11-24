@@ -1,11 +1,11 @@
 # Orbit — PRD
 
-Черновик v0.1 · 2026-11-21 · статус: на ревью у владельца
+v0.2 · 2026-11-24 · этап 1 готов, детали модели в `docs/adr/0002-data-model-rules.md`
 
 ## Проблема
 
 Проекты, сессии с Claude, советы и решения разбросаны по папкам, чатам и заметкам. Нет одного
-места, где за минуту видно: что в работе, на каком этапе, какие сроки, что подвисло.
+места, где за минуту видно: что в работе, на каком этапе, какие сроки, что подвисло и в каких проектах. []()
 
 ## Пользователи
 
@@ -27,13 +27,14 @@
 
 | Таблица | Поля |
 |---|---|
-| `projects` | id, slug (уникальный, = папка в `D:\Projects`), name, status, priority, start_date, due_date, summary (до 140 симв.), obsidian_path, repo_path, github_url, position, created_at, updated_at, archived_at |
-| `milestones` | id, project_id, name, status, start_date, due_date, summary, position, created_at, updated_at |
+| `projects` | id, slug (уникальный, = папка в `D:\Projects`), name, status, priority, start_date, due_date, summary (до 140 симв.), obsidian_path, repo_path, github_url, position, created_at, updated_at, done_at, archived_at |
+| `milestones` | id, project_id, name, status, start_date, due_date, summary, position, created_at, updated_at, done_at |
 | `tasks` | id, project_id, milestone_id?, parent_id?, title, status, priority, start_date, due_date, comment (до 280 симв.), position, created_at, updated_at, done_at |
 | `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value |
 | `sessions` (этап 3) | id, project_id, started_at, ended_at, title, prompts, files, commits — импорт журналов сессий Claude |
 
-- **Статусы** (одни для всех уровней): `backlog` → `planned` → `in_progress` → `blocked` → `done` / `canceled`.
+- **Статусы** (одни для всех уровней): `backlog` → `planned` → `in_progress` → `paused` / `blocked` → `done` / `canceled`.
+  Переходы свободные; закрыть или удалить элемент с открытыми потомками можно только с `--force` (ADR 0002).
 - **Приоритет:** 0–4 (none, low, medium, high, urgent), как в Linear.
 - **Прогресс** этапа = done / (все − canceled) по задачам; этап без задач — по своему статусу.
 - **Просрочено:** due_date < сегодня и статус не `done`/`canceled`.
@@ -72,9 +73,10 @@ orbit milestone add <project> "Core and CLI" --due 2026-11-28
 orbit task add <project> "DB schema" --milestone 1
 orbit set task 12 --status done --comment "schema + migrations"
 orbit log --since 7d              # change history
-orbit export --csv out/           # for Tableau
+orbit export --csv out/           # for Tableau (stage 5)
 orbit backup
-orbit serve                       # API + UI on localhost
+orbit seed --demo                 # fictional data into data/demo.db
+orbit serve                       # API + UI on localhost (stage 2)
 ```
 У каждой команды есть `--json`: Claude читает машинный вывод, а не парсит таблицы.
 
@@ -97,19 +99,18 @@ orbit serve                       # API + UI on localhost
 
 ## Этапы
 
-| # | Этап | Готово, когда |
-|---|---|---|
-| 0 | Спека и каркас: PRD, ADR, CLAUDE.md, git | готово 21.11 |
-| 1 | Ядро: схема и миграции, доменная логика, `events`, CLI, тесты, demo-seed | текущие проекты заведены, Claude ведет их через CLI |
-| 2 | API и интерфейс: дерево, панель, правка в ячейке, SSE | статус, измененный CLI, виден в UI за 2 с |
-| 3 | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | затем разбор прошлых сессий в orbit + Obsidian |
-| 4 | Таймлайн этапов (Гант) | |
-| 5 | Аналитика, `export`, дашборд Tableau Public | |
-| 6 | Релиз: README ru/en, скриншоты, CI, публичный репозиторий (после «да») | |
-| 7 | MCP-сервер | orbit доступен как инструменты в любой сессии |
+| #   | Этап                                                                                 | Готово, когда                                       |
+| --- | ------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| 0   | Спека и каркас: PRD, ADR, CLAUDE.md, git                                             | готово 24.11                                        |
+| 1   | Ядро: схема и миграции, доменная логика, `events`, CLI, тесты, demo-seed             | готово 24.11                                        |
+| 2   | API и интерфейс: дерево, панель, правка в ячейке, SSE                                | статус, измененный CLI, виден в UI за 2 с           |
+| 3   | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | затем разбор прошлых сессий в orbit + Obsidian      |
+| 4   | Таймлайн этапов (Гант)                                                               |                                                     |
+| 5   | Аналитика, `export`, дашборд Tableau Public                                          |                                                     |
+| 6   | Релиз: README ru/en, скриншоты, CI, публичный репозиторий (после «да»)               |                                                     |
+| 7   | MCP-сервер                                                                           | orbit доступен как инструменты в любой сессии       |
 
 ## Открытые вопросы
 
 - Какие 3 графика нужны каждый день? Решаем на этапе 5.
-- Нужны ли повторяющиеся задачи и напоминания (например, в Telegram)?
-- Отдельный статус проекта «на паузе» или хватит `blocked`?
+- ~~Отдельный статус проекта «на паузе» или хватит `blocked`?~~ Решено: статус `paused` для всех уровней (ADR 0002). 
