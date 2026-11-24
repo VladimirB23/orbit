@@ -33,6 +33,10 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# Generated migrations keep long SQL literals on one line
+"src/orbit/db/migrations/versions/*" = ["E501"]
+
 [tool.mypy]
 strict = true
 python_version = "3.13"
@@ -41,3 +45,11 @@ files = ["src", "tests"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.uv]
+# Windows Smart App Control blocks SQLAlchemy's compiled (Cython) .pyd modules,
+# so SQLAlchemy is built from source as pure Python. Speed is irrelevant at our scale.
+no-binary-package = ["sqlalchemy"]
+
+[tool.uv.extra-build-variables]
+sqlalchemy = { DISABLE_SQLALCHEMY_CEXT = "1" }
