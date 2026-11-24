@@ -53,16 +53,16 @@ export function FocusChart({ rows, today, className, onOpen }: Props) {
         <table className="w-full table-fixed border-separate border-spacing-y-0.5 text-sm">
           <thead>
             <tr className="text-left text-muted-foreground text-xs">
-              <th scope="col" className="w-[34%] pb-1 font-normal @xl:w-[30%]">
+              <th scope="col" className="w-[42%] pb-1 font-normal @sm:w-[34%] @xl:w-[30%]">
                 Проект
               </th>
               <th scope="col" className="pb-1 font-normal">
                 Внимание
               </th>
-              <th scope="col" className="w-18 pb-1 pl-3 text-right font-normal">
+              <th scope="col" className="w-16 pb-1 pl-3 text-right font-normal @sm:w-18">
                 Сессии
               </th>
-              <th scope="col" className="w-20 pb-1 pl-3 text-right font-normal">
+              <th scope="col" className="w-18 pb-1 pl-3 text-right font-normal @sm:w-20">
                 Коммиты
               </th>
               <th
@@ -122,12 +122,12 @@ function Row({ row, today, scale, onOpen }: RowProps) {
         >
           <OrbitGlyph status={row.status} />
           <span className="min-w-0 truncate">{row.name}</span>
-          {row.priority > 0 && <PriorityMark value={row.priority} className="max-@lg:hidden" />}
+          {row.priority > 0 && <PriorityMark value={row.priority} className="@max-lg:hidden" />}
         </button>
       </th>
       <td className="py-1" data-tip={`${row.name}\n${why.join('\n')}`}>
         <span className="flex items-center gap-2">
-          <span aria-hidden="true" className="relative h-3.5 min-w-8 flex-1">
+          <span aria-hidden="true" className="relative hidden h-3.5 min-w-8 flex-1 @sm:block">
             <span className="absolute inset-y-[3px] left-0 w-full rounded-sm bg-track/60" />
             <span
               className={cn(

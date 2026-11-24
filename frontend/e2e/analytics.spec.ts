@@ -227,3 +227,18 @@ for (const width of [360, 768, 1024, 1920]) {
     }
   });
 }
+
+test('every screen can be reached on a phone', async ({ page, orbit: _ }) => {
+  await page.setViewportSize({ width: 360, height: 700 });
+  for (const name of ['Аналитика', 'Таймлайн', 'Дерево']) {
+    const link = page.getByRole('link', { name });
+    const box = await link.boundingBox();
+    const frame = await page.getByRole('navigation', { name: 'Экран' }).boundingBox();
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
+      (frame?.x ?? 0) + (frame?.width ?? 0),
+    );
+    await link.click();
+    await expect(link).toHaveAttribute('aria-current', 'page');
+  }
+  await expect(page.getByRole('button', { name: 'Новый проект' })).toBeInViewport({ ratio: 1 });
+});

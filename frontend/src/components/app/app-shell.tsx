@@ -74,13 +74,13 @@ export function AppShell() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-border border-b bg-card px-4">
+      <header className="flex h-12 shrink-0 items-center gap-3 border-border border-b bg-card px-4 max-sm:gap-2 max-sm:px-3">
         <h1 className="flex items-center gap-2.5 font-semibold text-lg tracking-tight">
           <Logo />
-          Orbit
+          <span className="max-sm:sr-only">Orbit</span>
         </h1>
         {meta?.database.demo && (
-          <span className="rounded-md bg-sun-wash px-2 py-0.5 text-sm text-sun-ink">
+          <span className="rounded-md bg-sun-wash px-2 py-0.5 text-sm text-sun-ink max-sm:px-1.5">
             Демо<span className="max-sm:sr-only">: данные вымышлены</span>
           </span>
         )}
@@ -110,7 +110,12 @@ export function AppShell() {
             <Keyboard />
           </Button>
           <ThemeMenu theme={theme} onChange={setTheme} />
-          <Button size="sm" className="ml-2 h-8" title="Новый проект (P)" onClick={emitNewProject}>
+          <Button
+            size="sm"
+            className="ml-2 h-8 max-sm:ml-0"
+            title="Новый проект (P)"
+            onClick={emitNewProject}
+          >
             <Plus /> <span className="max-sm:sr-only">Новый проект</span>
           </Button>
         </div>
@@ -164,7 +169,10 @@ function ScreenSwitch() {
     { value: 'analytics' as const, label: 'Аналитика', key: 'A', Icon: ChartColumn },
   ];
   return (
-    <nav aria-label="Экран" className="flex overflow-hidden rounded-lg border border-border">
+    <nav
+      aria-label="Экран"
+      className="flex shrink-0 overflow-hidden rounded-lg border border-border"
+    >
       {screens.map(({ value, label, key, Icon }) => (
         <Link
           key={label}
@@ -173,12 +181,12 @@ function ScreenSwitch() {
           aria-current={screen === value ? 'page' : undefined}
           title={`${label} (${key})`}
           className={cn(
-            'flex h-7.5 items-center gap-1.5 px-2.5 text-muted-foreground text-sm hover:text-foreground',
+            'flex h-7.5 items-center gap-1.5 px-2.5 text-muted-foreground text-sm hover:text-foreground max-sm:px-2',
             screen === value && 'bg-selected font-medium text-foreground',
           )}
         >
           <Icon aria-hidden="true" className="size-4" />
-          <span className="max-md:sr-only">{label}</span>
+          <span className="max-lg:sr-only">{label}</span>
         </Link>
       ))}
     </nav>
@@ -213,7 +221,7 @@ function LiveMark({ state }: { state: LiveState }) {
     <span
       role="status"
       title="Правки из терминала появляются здесь без перезагрузки"
-      className="mr-2 flex items-center gap-2 text-muted-foreground text-sm"
+      className="mr-2 flex items-center gap-2 text-muted-foreground text-sm max-sm:mr-0"
     >
       <span className={cn('size-2 rounded-full', dot)} />
       <span className="max-md:sr-only">{text}</span>

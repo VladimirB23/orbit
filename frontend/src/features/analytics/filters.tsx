@@ -38,7 +38,7 @@ interface Props {
 }
 
 const chip =
-  'flex h-8 items-center gap-1.5 border-border border-r px-3 text-sm last:border-r-0 hover:text-foreground';
+  'flex h-8 items-center gap-1.5 whitespace-nowrap border-border border-r px-3 text-sm last:border-r-0 hover:text-foreground max-sm:px-2.5';
 
 export function Filters({ period, counted, project, projects, today, onChange }: Props) {
   const choose = (key: PeriodKey) =>
@@ -150,7 +150,8 @@ function OwnPeriod({ period, today, onChange }: OwnProps) {
             own && 'bg-selected font-medium text-foreground',
           )}
         >
-          <CalendarRange aria-hidden="true" className="size-4" /> Свои даты
+          <CalendarRange aria-hidden="true" className="size-4" />
+          <span className="max-sm:sr-only">Свои даты</span>
         </button>
       </PopoverTrigger>
       <PopoverContent

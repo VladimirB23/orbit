@@ -41,7 +41,10 @@ export function DeadlinesChart({ data, names, className, onOpen }: Props) {
         <Note>Просрочек нет, на две недели вперед сроков тоже.</Note>
       ) : (
         <ul className="relative">
-          <li aria-hidden="true" className="grid grid-cols-[minmax(0,1fr)_34%_auto] gap-x-3">
+          <li
+            aria-hidden="true"
+            className="@max-md:hidden grid grid-cols-[minmax(0,1fr)_auto] @md:grid-cols-[minmax(0,1fr)_34%_auto] gap-x-3"
+          >
             <span />
             <span className="relative h-5 text-muted-foreground text-xs">
               <span className="absolute -translate-x-1/2" style={{ left: `${place(0)}%` }}>
@@ -84,7 +87,7 @@ function Row({ item, project, today, onOpen }: RowProps) {
   const zero = place(0);
   const at = place(item.days);
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_34%_auto] items-center gap-x-3 text-sm">
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] @md:grid-cols-[minmax(0,1fr)_34%_auto] items-center gap-x-3 text-sm">
       <button
         type="button"
         onClick={() => onOpen(`${item.entity}-${item.id}`)}
@@ -103,7 +106,7 @@ function Row({ item, project, today, onOpen }: RowProps) {
       </button>
       <span
         aria-hidden="true"
-        className="relative h-full"
+        className="relative h-full @max-md:hidden"
         data-tip={`${item.title}\n${ENTITY[item.entity]}, ${formatDay(item.due, today)}`}
       >
         <span className="absolute inset-x-0 top-1/2 h-px bg-line" />
