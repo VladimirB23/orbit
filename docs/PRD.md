@@ -1,6 +1,6 @@
 # Orbit — PRD
 
-v0.5 · 2026-11-24 · этапы 1-4 готовы; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`, таймлайн: `docs/adr/0005-timeline.md`
+v0.6 · 2026-11-25 · этапы 1-4 готовы; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`, таймлайн: `docs/adr/0005-timeline.md`, отмена и поля: `docs/adr/0006-undo-and-fields.md`
 
 ## Проблема
 
@@ -30,7 +30,7 @@ v0.5 · 2026-11-24 · этапы 1-4 готовы; модель: `docs/adr/0002-
 | `projects` | id, slug (уникальный, = папка в `D:\Projects`), name, status, priority, start_date, due_date, summary (до 140 симв.), obsidian_path, repo_path, github_url, position, created_at, updated_at, done_at, archived_at |
 | `milestones` | id, project_id, name, status, start_date, due_date, summary, position, created_at, updated_at, done_at |
 | `tasks` | id, project_id, milestone_id?, parent_id?, title, status, priority, start_date, due_date, comment (до 280 симв.), position, created_at, updated_at, done_at |
-| `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value |
+| `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value, batch (действие), undoes (что отменяет) |
 | `sessions` | id, external_id (id сессии Claude), project_id, started_at, ended_at, title, prompts, files, commits (числа), folder — импорт журналов сессий из Obsidian (ADR 0004) |
 
 - **Статусы** (одни для всех уровней): `backlog` → `planned` → `in_progress` → `paused` / `blocked` → `done` / `canceled`.
@@ -50,7 +50,8 @@ v0.5 · 2026-11-24 · этапы 1-4 готовы; модель: `docs/adr/0002-
    ячейке, быстрое добавление строки, фильтры (статус, просрочено, проект), поиск.
 2. **Панель элемента** (drawer справа): адрес папки (VS Code, копировать), заметка Obsidian, все поля,
    у проекта сессии Claude с командой продолжения, история изменений из `events`.
-3. Светлая и темная тема, горячие клавиши.
+3. Светлая и темная тема, горячие клавиши. `Ctrl+Z` отменяет последнее действие, `Ctrl+Shift+Z` возвращает.
+   Ширина и состав полей настраиваются, у дерева и таймлайна отдельно.
 4. **Палитра `Ctrl+K`**: перейти к любому пункту, открыть папку или заметку, выполнить команду.
 
 5. **Таймлайн** (`G`): те же строки на шкале времени, план и факт, масштаб «Дни / Недели / Месяцы»;
@@ -83,6 +84,7 @@ orbit set task 12 --status done --comment "schema + migrations"
 orbit log --since 7d              # change history
 orbit session list [project]      # Claude sessions imported from the Obsidian journals
 orbit export --csv out/           # for Tableau (stage 5)
+orbit undo | redo                 # last action of the same actor, within 12 hours
 orbit backup
 orbit seed --demo                 # fictional data into data/demo.db
 orbit serve                       # API + UI on http://127.0.0.1:8420, this computer only

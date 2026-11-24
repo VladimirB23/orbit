@@ -55,6 +55,7 @@ orbit set project|milestone|task <slug|id> [--name --title --slug --status --pri
           --summary --comment --obsidian --repo --github --milestone --parent --position] [--force]
                                              # 'none' clears a field: --due none
 orbit log [--since 7d|12h|2w|YYYY-MM-DD] [--entity task --id 12] [--limit 50]
+orbit undo | redo                            # last action of the same actor (12 hours)
 orbit session import                         # journals of the vault -> sessions (orbit serve does it itself)
 orbit session list [project] [--limit 20]    # Claude sessions, newest first
 orbit serve [--port 8420] [--no-open]        # API + UI on 127.0.0.1 only; daily backup on start
@@ -76,6 +77,7 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Доменная логика (статусы, прогресс, `events`) — сначала тест, потом код.
 - Любое изменение схемы — миграция Alembic плюс тест.
 - Изменил API: `npm run gen:api`, иначе упадет `test_contract.py`. Формат ответов `/api/v1` не ломать.
+- Новое поле строки: строка в `frontend/src/lib/columns.ts` и ветка в `features/tree/cells.tsx`. Один экземпляр `Orbit` = одно действие для отмены.
 - Что и где рисует таймлайн, решает `frontend/src/lib/timeline.ts` (тесты рядом); факт работы (`actual`) считает домен по `events`.
 - Новая ссылка наружу: путь проверяется в `frontend/src/lib/links.ts`, сетевые пути и чужие схемы не ссылки.
 - Сервер слушает только `127.0.0.1`; открыть наружу можно только с токенами и новым ADR.
