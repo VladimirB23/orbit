@@ -9,9 +9,10 @@
 ## Структура
 
 - `backend/src/orbit/`: `domain/` (правила, сервис `Orbit`, `events`), `db/` (модели, миграции Alembic),
-  `cli/` (Typer), `serialize.py`; тесты `backend/tests/`. Позже `api/` (этап 2).
-- `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell).
-- `frontend/`: React-приложение (этап 2).
+  `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`; тесты `backend/tests/`.
+- `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом.
+- `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны),
+  `src/components/ui/` (shadcn), `src/index.css` (все цвета и отступы), `e2e/` (Playwright, свой сервер на тест).
 - `data/`: живая база `orbit.db`, бэкапы, `demo.db` — только локально, в git не попадает.
 - `docs/`: PRD, ADR, скриншоты.
 
@@ -26,6 +27,12 @@ uv run ruff check . ; uv run ruff format .
 uv run mypy                              # strict type check
 uv run alembic revision --autogenerate -m "..."   # new migration (then review it!)
 ```
+
+Все проверки: `sh bin/check` или `bin\check.cmd` (`--fast` без браузера). Перед коммитом обязательно.
+
+Фронт (из `frontend/`): `npm run dev` (нужен запущенный `orbit serve`), `npm run build`, `npm test`,
+`npm run e2e`, `npm run format`. После изменения API: `npm run gen:api`. Инструменты запускать через
+npm-скрипты, не напрямую: `scripts/run.mjs` лечит путаницу `d:` / `D:`.
 
 CLI. Запуск: `bin/orbit ...` (Git Bash) или `bin\orbit.cmd ...` (PowerShell); если `bin` в PATH —
 просто `orbit`. Сгенерированный `orbit.exe` блокирует Smart App Control, поэтому запускатели вызывают
@@ -45,6 +52,8 @@ orbit set project|milestone|task <slug|id> [--name --title --slug --status --pri
           --summary --comment --obsidian --repo --github --milestone --parent --position] [--force]
                                              # 'none' clears a field: --due none
 orbit log [--since 7d|12h|2w|YYYY-MM-DD] [--entity task --id 12] [--limit 50]
+orbit serve [--port 8420] [--no-open]        # API + UI on 127.0.0.1 only; daily backup on start
+orbit openapi                                # API schema (used by npm run gen:api)
 orbit backup [--dir path]                    # default data/backups/
 orbit seed --demo [--reset]                  # fictional data into data/demo.db (never orbit.db)
 orbit db info | db upgrade                   # path, revision, counts; migrations run automatically
@@ -60,6 +69,8 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Один этап — одна сессия. В начале прочитай строку этапа в `docs/PRD.md`, в конце обнови ее статус.
 - Доменная логика (статусы, прогресс, `events`) — сначала тест, потом код.
 - Любое изменение схемы — миграция Alembic плюс тест.
+- Изменил API: `npm run gen:api`, иначе упадет `test_contract.py`. Формат ответов `/api/v1` не ломать.
+- Сервер слушает только `127.0.0.1`; открыть наружу можно только с токенами и новым ADR.
 - Реальная база никогда не попадает в git, скриншоты и демо — только на `orbit seed --demo`.
 - Перед добавлением зависимости проверь, что она жива, и возьми актуальную версию (`uv add`, `npm view`).
 - Существенное решение (библиотека, формат данных, архитектура) — новый ADR в `docs/adr/`.
