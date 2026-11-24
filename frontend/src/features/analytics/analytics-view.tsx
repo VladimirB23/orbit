@@ -29,7 +29,15 @@ export function AnalyticsView({ search, today, projects, onSearch, onOpen }: Pro
     end: period.end,
     project: search.project,
   });
-  const names = useMemo(() => new Map(projects.map((p) => [p.slug, p.title])), [projects]);
+  // Archived projects are not in the tree, but their work is in the numbers.
+  const names = useMemo(
+    () =>
+      new Map([
+        ...(data?.focus ?? []).map((row): [string, string] => [row.slug, row.name]),
+        ...projects.map((p): [string, string] => [p.slug, p.title]),
+      ]),
+    [projects, data],
+  );
 
   return (
     <>
@@ -67,23 +75,24 @@ export function AnalyticsView({ search, today, projects, onSearch, onOpen }: Pro
                 ))}
               </p>
               <Band title="Каждый день">
-                <Column className="@4xl/page:col-span-7">
+                <Column className="@3xl/page:col-span-12 @4xl/page:col-span-7">
                   <FocusChart rows={data.focus} today={data.today} onOpen={onOpen} />
                   <ActivityChart data={data} />
                 </Column>
-                <Column className="@4xl/page:col-span-5">
+                <Column className="@3xl/page:col-span-12 @4xl/page:col-span-5">
                   <DeadlinesChart data={data} names={names} onOpen={onOpen} />
+                  <StatusesChart rows={data.focus} />
                 </Column>
               </Band>
               <Band title="Раз в неделю" note="как идет работа, а не что горит">
-                <Column className="@4xl/page:col-span-6">
-                  <ClosedChart data={data} />
-                  <PlanChart data={data} onOpen={onOpen} />
-                </Column>
-                <Column className="@4xl/page:col-span-6">
-                  <CycleChart data={data} />
-                  <StatusesChart rows={data.focus} />
-                </Column>
+                <ClosedChart className="@3xl/page:col-span-6 @6xl/page:col-span-4" data={data} />
+                <CycleChart className="@3xl/page:col-span-6 @6xl/page:col-span-4" data={data} />
+                <PlanChart
+                  className="@3xl/page:col-span-12 @6xl/page:col-span-4"
+                  data={data}
+                  names={names}
+                  onOpen={onOpen}
+                />
               </Band>
             </>
           ) : isError ? (
@@ -119,7 +128,7 @@ function Band({
         {title}
         {note && <span className="font-normal text-muted-foreground text-sm">{note}</span>}
       </p>
-      <div className="grid gap-3 @4xl/page:grid-cols-12">{children}</div>
+      <div className="grid gap-3 @3xl/page:grid-cols-12">{children}</div>
     </section>
   );
 }

@@ -133,17 +133,22 @@ export function CycleChart({ data, className }: { data: Analytics; className?: s
 
 // --- plan and fact -------------------------------------------------------------
 
-const MOST_PLANS = 7;
+const MOST_PLANS = 8;
 
 interface PlanProps {
   data: Analytics;
+  names: Map<string, string>;
   className?: string;
   onOpen: (key: string) => void;
 }
 
-export function PlanChart({ data, className, onOpen }: PlanProps) {
+export function PlanChart({ data, names, className, onOpen }: PlanProps) {
   const { plan, today } = data;
-  const items = plan.items.slice(0, MOST_PLANS);
+  // The latest first when all fit; otherwise those that were late the most.
+  const all = plan.items.length > MOST_PLANS;
+  const items = all
+    ? [...plan.items].sort((a, b) => b.days - a.days).slice(0, MOST_PLANS)
+    : plan.items;
   const top = Math.max(...items.map((item) => Math.abs(item.days)), 2);
   const left = [
     plan.no_due && `${plan.no_due} без срока`,
@@ -174,15 +179,18 @@ export function PlanChart({ data, className, onOpen }: PlanProps) {
         <ul className={cn('space-y-0.5 text-sm', plan.compared < plan.needed && 'mt-3')}>
           {items.map((item) => {
             const late = item.days > 0;
-            const width = `${(Math.abs(item.days) / top) * 32}%`;
+            const width = `${(Math.abs(item.days) / top) * 26}%`;
             return (
               <li key={item.milestone_id} className="grid grid-cols-[40%_minmax(0,1fr)] gap-x-3">
                 <button
                   type="button"
                   onClick={() => onOpen(`milestone-${item.milestone_id}`)}
-                  className="truncate rounded-sm py-1 text-left hover:underline"
+                  className="min-w-0 rounded-sm py-0.5 text-left hover:underline"
                 >
-                  {item.name}
+                  <span className="block truncate leading-tight">{item.name}</span>
+                  <span className="block truncate text-muted-foreground text-xs">
+                    {names.get(item.project) ?? item.project}
+                  </span>
                 </button>
                 <span
                   className="relative"
@@ -221,7 +229,7 @@ export function PlanChart({ data, className, onOpen }: PlanProps) {
       )}
       {plan.compared > MOST_PLANS && (
         <Note>
-          Показаны последние {MOST_PLANS} из {plan.compared}.
+          Показаны {MOST_PLANS} самых поздних из {plan.compared}.
         </Note>
       )}
       {left.length > 0 && <Note>Не вошли: {left.join(', ')}.</Note>}
