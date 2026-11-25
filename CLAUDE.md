@@ -19,6 +19,8 @@
   `src/components/ui/` (shadcn), `src/index.css` (все цвета и отступы), `e2e/` (Playwright, свой сервер на тест).
 - `data/`: живая база `orbit.db`, настройки `orbit.toml` (`vault = '...'`, `auto_dates = true`), бэкапы, `demo*.db` —
   только локально, в git не попадает. `out/` (выгрузки, макеты) тоже.
+- `.github/workflows/check.yml`: CI на Windows, те же проверки, что `bin/check`; действия закреплены по коммиту.
+- `README.md` и `README.ru.md` меняются вместе; снимки `docs/images/`: `node scripts/screenshots.mjs` из `frontend/`.
 - `docs/`: PRD, ADR, `metrics.md` (определения и SQL), `tableau.md` (дашборд по шагам).
 
 ## Команды

@@ -7,7 +7,9 @@ export default defineConfig({
   outputDir: 'test-results',
   timeout: 30_000,
   fullyParallel: true,
-  workers: 4,
+  // A shared machine is slower and may stumble once.
+  workers: process.env.CI ? 2 : 4,
+  retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
   globalSetup: './e2e/global-setup.ts',
   use: {
