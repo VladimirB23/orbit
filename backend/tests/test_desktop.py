@@ -14,7 +14,7 @@ from orbit import desktop
 from orbit.api import server
 from orbit.api.app import create_app
 from orbit.cli import app as cli
-from orbit.local import port_is_free, run_file
+from orbit.local import ask_to_stop, port_is_free, run_file
 
 ROOT = Path(__file__).resolve().parents[2]
 LOG = Path("orbit.log")
@@ -58,7 +58,7 @@ class Running:
 def running(db_file: Path) -> Iterator[Running]:
     one = Running(db_file)
     yield one
-    one.mark.unlink(missing_ok=True)
+    ask_to_stop(one.mark)
     one.thread.join(10)
 
 
@@ -71,7 +71,7 @@ def test_a_running_server_leaves_a_mark_next_to_its_database(running: Running) -
 
 
 def test_without_the_mark_the_server_stops(running: Running) -> None:
-    running.mark.unlink()
+    ask_to_stop(running.mark)
     assert wait(running.ended)
     assert port_is_free(running.port)
 
@@ -80,6 +80,24 @@ def test_a_mark_of_another_server_is_left_alone(running: Running) -> None:
     running.mark.write_text("another", encoding="utf-8")
     assert wait(running.ended)
     assert running.mark.read_text(encoding="utf-8") == "another"
+
+
+def test_a_mark_that_is_being_read_is_still_taken_away(tmp_path: Path) -> None:
+    """Windows refuses to delete an open file, and the server opens its mark twice a second."""
+    mark = tmp_path / "orbit-1.run"
+    mark.write_text("x", encoding="utf-8")
+    reader = mark.open()
+    threading.Timer(0.3, reader.close).start()
+    ask_to_stop(mark)
+    assert not mark.exists()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="only Windows refuses")
+def test_a_mark_held_for_good_is_an_error(tmp_path: Path) -> None:
+    mark = tmp_path / "orbit-1.run"
+    mark.write_text("x", encoding="utf-8")
+    with mark.open(), pytest.raises(PermissionError):
+        ask_to_stop(mark, seconds=0.2)
 
 
 def test_stop_command(running: Running) -> None:
@@ -230,7 +248,7 @@ def test_the_second_of_two_clicks_waits_for_the_first(db_file: Path) -> None:
     assert desk.served == []
     assert desk.opened == [f"http://127.0.0.1:{port}"]
     started.wait(5)
-    run_file(db_file, port).unlink(missing_ok=True)
+    ask_to_stop(run_file(db_file, port))
     servers[0].join(10)
 
 

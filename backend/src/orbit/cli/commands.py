@@ -41,7 +41,7 @@ from orbit.domain.service import Orbit
 from orbit.export import export_csv
 from orbit.gitlog import local_folder, read_commits
 from orbit.journal import read_journals
-from orbit.local import port_is_free, run_file
+from orbit.local import ask_to_stop, port_is_free, run_file
 from orbit.seed import seed_demo
 from orbit.seed_history import seed_history
 
@@ -800,7 +800,7 @@ def stop(
     db: Path = ctx.obj.db
     mark = run_file(db, port)
     marked = mark.exists()
-    mark.unlink(missing_ok=True)
+    ask_to_stop(mark)
     if port_is_free(port):
         if not quiet:
             typer.echo("orbit is not running")

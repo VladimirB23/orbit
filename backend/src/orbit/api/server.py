@@ -10,7 +10,7 @@ from uuid import uuid4
 import uvicorn
 from fastapi import FastAPI
 
-from orbit.local import HOST
+from orbit.local import HOST, ask_to_stop
 
 RUN_SECONDS = 0.5  # how often a server looks whether it is asked to stop
 
@@ -68,7 +68,7 @@ class OrbitServer(uvicorn.Server):
             self._watch.cancel()
         await super().shutdown(sockets)
         if self._mark is not None and _read(self._mark) == self._token:
-            self._mark.unlink(missing_ok=True)
+            ask_to_stop(self._mark)
 
 
 UNREADABLE = ""
