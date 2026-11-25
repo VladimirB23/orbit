@@ -1,6 +1,6 @@
 # Orbit — PRD
 
-v0.8 · 2026-11-25 · этапы 1-6 готовы, публикация после "да"; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`, таймлайн: `docs/adr/0005-timeline.md`, отмена и поля: `docs/adr/0006-undo-and-fields.md`, аналитика и экспорт: `docs/adr/0007-analytics.md`, автоматические сроки: `docs/adr/0008-automatic-dates.md`, запуск с рабочего стола: `docs/adr/0009-desktop-launch.md`, будущие проекты: `docs/adr/0010-future-projects.md`
+v0.8 · 2026-11-25 · этапы 1-6 готовы, репозиторий публичный с 25.11; модель: `docs/adr/0002-data-model-rules.md`, API и интерфейс: `docs/adr/0003-api-and-ui.md`, ссылки и сессии: `docs/adr/0004-links-and-sessions.md`, таймлайн: `docs/adr/0005-timeline.md`, отмена и поля: `docs/adr/0006-undo-and-fields.md`, аналитика и экспорт: `docs/adr/0007-analytics.md`, автоматические сроки: `docs/adr/0008-automatic-dates.md`, запуск с рабочего стола: `docs/adr/0009-desktop-launch.md`, будущие проекты: `docs/adr/0010-future-projects.md`
 
 ## Проблема
 
@@ -132,7 +132,7 @@ orbit serve                       # API + UI on http://127.0.0.1:8420, this comp
 | 3   | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | готово 24.11; затем разбор прошлых сессий в orbit + Obsidian |
 | 4   | Таймлайн этапов (Гант)                                                               | готово 24.11 (сроки тянутся мышью, план и факт)     |
 | 5   | Аналитика, `export`, дашборд Tableau Public                                          | код готов 25.11; дашборд отдельно, по `docs/tableau.md` |
-| 6   | Релиз: README ru/en, скриншоты, CI, запуск с рабочего стола, публичный репозиторий   | готово 25.11 в ветке, публикация после "да"         |
+| 6   | Релиз: README ru/en, скриншоты, CI, запуск с рабочего стола, публичный репозиторий   | готово 25.11, опубликовано                          |
 | 7   | MCP-сервер                                                                           | orbit доступен как инструменты в любой сессии       |
 | 8   | Вкладка "День": планер, календарь, привычки                                          | после релиза, предложение в ADR 0008                |
 | 9   | Напоминания в orbit и Telegram, синхронно                                            | после релиза (ADR 0008)    |
