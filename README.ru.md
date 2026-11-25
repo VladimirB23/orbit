@@ -32,8 +32,8 @@ Claude читает и меняет данные через CLI, браузер 
 | **Честные пустые состояния.** Мало данных - график говорит, чего не хватает; с периодом без записей ничего не сравнивается | [`test_analytics.py`](backend/tests/test_analytics.py) |
 | **Выгрузка звездой** для Tableau: 4 измерения, 4 таблицы фактов, словарь полей; выгрузка настоящих данных помечается как личная | [`export.py`](backend/src/orbit/export.py) |
 | **Агент как пользователь.** `--json` у каждой команды, коды ошибок по видам, у каждого изменения есть автор | [`cli`](backend/src/orbit/cli) |
-| **Отмена по журналу**, а не из памяти браузера: переживает перезагрузку, возвращает удаленные ветки, не затирает более новые правки | [`undo.py`](backend/src/orbit/domain/undo.py) |
-| **Безопасность без логинов:** только `127.0.0.1`, защита от DNS rebinding и межсайтовых запросов, строгий CSP | [`security.py`](backend/src/orbit/api/security.py) |
+| **Отмена по журналу**, а не из памяти браузера: переживает перезагрузку, возвращает удаленный этап со всем содержимым, не затирает более новые правки | [`undo.py`](backend/src/orbit/domain/undo.py) |
+| **Безопасность без логинов:** только `127.0.0.1`, защита от DNS rebinding и межсайтовых запросов, CSP без чужих скриптов | [`security.py`](backend/src/orbit/api/security.py) |
 | **Решения записаны** вместе с отвергнутыми вариантами | [`docs/adr`](docs/adr) |
 
 <details>
@@ -54,7 +54,7 @@ Claude читает и меняет данные через CLI, браузер 
 ## Запуск
 
 Windows, [Git](https://git-scm.com), [uv](https://docs.astral.sh/uv/) и [Node.js](https://nodejs.org) 22.12 или новее.
-Python uv поставит сам. В Command Prompt или PowerShell:
+Python uv поставит сам. В Command Prompt, около трех минут с пустыми кэшами:
 
 ```bat
 git clone https://github.com/VladimirB23/orbit.git

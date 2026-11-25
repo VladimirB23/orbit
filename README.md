@@ -32,8 +32,8 @@ generated and this effect was put there on purpose; the screen is what finds it.
 | **Honest empty states.** With too little data a chart says what is missing; there is no comparison with a period nobody recorded | [`test_analytics.py`](backend/tests/test_analytics.py) |
 | **Star schema export** for Tableau: 4 dimensions, 4 facts, a data dictionary; an export of real data is labelled private | [`export.py`](backend/src/orbit/export.py) |
 | **An agent as a user.** `--json` on every command, exit codes by kind of error, every change signed by its author | [`cli`](backend/src/orbit/cli) |
-| **Undo from the journal**, not from browser memory: it survives a reload, brings back deleted branches and refuses to overwrite newer edits | [`undo.py`](backend/src/orbit/domain/undo.py) |
-| **Safe without logins:** listens only on `127.0.0.1`; checks against DNS rebinding and cross-site requests, strict CSP | [`security.py`](backend/src/orbit/api/security.py) |
+| **Undo from the journal**, not from browser memory: it survives a reload, brings back a deleted milestone with everything inside and refuses to overwrite newer edits | [`undo.py`](backend/src/orbit/domain/undo.py) |
+| **Safe without logins:** listens only on `127.0.0.1`; checks against DNS rebinding and cross-site requests, a CSP without foreign scripts | [`security.py`](backend/src/orbit/api/security.py) |
 | **Decisions are written down** with the options that lost | [`docs/adr`](docs/adr) (Russian) |
 
 <details>
@@ -54,7 +54,7 @@ generated and this effect was put there on purpose; the screen is what finds it.
 ## Run it
 
 Windows, [Git](https://git-scm.com), [uv](https://docs.astral.sh/uv/) and [Node.js](https://nodejs.org) 22.12 or newer.
-uv brings Python itself. In Command Prompt or PowerShell:
+uv brings Python itself. In Command Prompt, about three minutes with empty caches:
 
 ```bat
 git clone https://github.com/VladimirB23/orbit.git
