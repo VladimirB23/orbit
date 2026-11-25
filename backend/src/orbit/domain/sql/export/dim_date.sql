@@ -13,7 +13,12 @@ WITH RECURSIVE met AS (
     UNION ALL SELECT due_date FROM projects
 ),
 ends AS (
-    SELECT MIN(d) AS first, MAX(d) AS last FROM met WHERE d IS NOT NULL
+    -- MIN of two values: a typo in the year of a deadline must not make an endless calendar.
+    SELECT
+        MIN(d) AS first,
+        MIN(MAX(d), (SELECT date(MAX(day), '+3660 days') FROM status_changes)) AS last
+    FROM met
+    WHERE d IS NOT NULL
 ),
 calendar(date) AS (
     SELECT first FROM ends WHERE first IS NOT NULL

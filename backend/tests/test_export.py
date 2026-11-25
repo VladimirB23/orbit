@@ -233,3 +233,24 @@ def test_command_on_demo_data_does_not(run: Any, out: Path) -> None:
 
 def test_command_needs_a_folder(run: Any) -> None:
     assert run("demo.db", "export").exit_code != 0
+
+
+# --- trouble --------------------------------------------------------------------------
+
+
+def test_a_file_held_by_another_program_is_named(
+    orbit: Orbit, out: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def held(self: Path, target: Path) -> Path:
+        raise PermissionError(13, "in use")
+
+    monkeypatch.setattr(Path, "replace", held)
+    with pytest.raises(ValidationError, match="close it"):
+        export_csv(orbit, out, private=True)
+    assert list(out.glob("*.partial")) == []
+
+
+def test_a_typo_in_the_year_does_not_make_an_endless_calendar(orbit: Orbit, out: Path) -> None:
+    orbit.add_project("a", name="A", due_date="9999-12-31")
+    counts = export_csv(orbit, out, private=True)
+    assert counts["dim_date"] < 4000

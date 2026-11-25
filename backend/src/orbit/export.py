@@ -222,8 +222,12 @@ def _csv(names: list[str], rows: object) -> str:
 def _write(path: Path, content: str) -> None:
     """A reader sees either the old file or the new one, never a half."""
     partial = path.with_name(f"{path.name}.partial")
-    partial.write_text(content, encoding="utf-8", newline="\n")
-    partial.replace(path)
+    try:
+        partial.write_text(content, encoding="utf-8", newline="\n")
+        partial.replace(path)
+    except PermissionError:
+        partial.unlink(missing_ok=True)
+        raise ValidationError(f"{path} is open in another program: close it and repeat") from None
 
 
 def _label(folder: Path, private: bool) -> None:
