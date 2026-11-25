@@ -120,7 +120,7 @@ schema, and a test fails when they are out of date.
 Python 3.13, FastAPI, SQLAlchemy 2, Alembic, SQLite · React 19, TypeScript, TanStack, Tailwind, shadcn/ui · uv, ruff,
 mypy strict, pytest, Vitest, Playwright, axe.
 
-`sh bin/check` in Git Bash (or `bin\check`) runs what CI runs: lint, types, 556 backend tests, 207 frontend tests and 131
+`sh bin/check` in Git Bash (or `bin\check`) runs what CI runs: lint, types, 557 backend tests, 207 frontend tests and 131
 scenarios in Edge, accessibility in both themes included.
 
 ## Limits

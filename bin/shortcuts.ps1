@@ -9,11 +9,14 @@ Only shortcuts of the current user are written: no administrator rights, no regi
   powershell -ExecutionPolicy Bypass -File bin\shortcuts.ps1             desktop and Start menu
   powershell -ExecutionPolicy Bypass -File bin\shortcuts.ps1 -Autostart  and at logon, without a window
   powershell -ExecutionPolicy Bypass -File bin\shortcuts.ps1 -Remove     take all of them away
+  powershell -ExecutionPolicy Bypass -File bin\shortcuts.ps1 -Force      replace a foreign Orbit.lnk too
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [switch]$Autostart,
     [switch]$Remove,
+    # Replace a shortcut with the same name that was made by somebody else.
+    [switch]$Force,
     # Another place instead of the folders of the user: for tests.
     [string]$Root
 )
@@ -42,8 +45,18 @@ $all = @(
     @{ Path = (Join-Path $startup 'Orbit.lnk'); Arguments = '-m orbit app --background'; About = 'Orbit at logon'; AtLogon = $true }
 )
 
+$shell = New-Object -ComObject WScript.Shell
+
+# Ours starts pythonw with "-m orbit"; anything else under the same name belongs to the person.
+function Test-Foreign([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    $link = $shell.CreateShortcut($Path)
+    return -not ($link.TargetPath -like '*\pythonw.exe' -and $link.Arguments -like '-m orbit *')
+}
+
 if ($Remove) {
     foreach ($one in $all) {
+        if (Test-Foreign $one.Path) { "left alone, not made here: $($one.Path)"; continue }
         if ((Test-Path -LiteralPath $one.Path) -and $PSCmdlet.ShouldProcess($one.Path, 'Remove shortcut')) {
             Remove-Item -LiteralPath $one.Path -Confirm:$false
             "removed $($one.Path)"
@@ -60,9 +73,9 @@ if (-not (Test-Path -LiteralPath $pythonw)) {
     exit 1
 }
 
-$shell = New-Object -ComObject WScript.Shell
 foreach ($one in $all) {
     if ($one.AtLogon -and -not $Autostart) { continue }
+    if ((Test-Foreign $one.Path) -and -not $Force) { "left alone, not made here (-Force replaces it): $($one.Path)"; continue }
     if (-not $PSCmdlet.ShouldProcess($one.Path, 'Create shortcut')) { continue }
     $folder = Split-Path -Parent $one.Path
     if (-not (Test-Path -LiteralPath $folder)) { New-Item -ItemType Directory -Force -Path $folder | Out-Null }

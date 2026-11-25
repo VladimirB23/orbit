@@ -389,3 +389,27 @@ def test_a_shortcut_starts_pythonw_of_the_project(tmp_path: Path) -> None:
     assert out[0].lower().endswith("backend\\.venv\\scripts\\pythonw.exe")
     assert out[1] == "-m orbit app"
     assert out[2].lower().endswith("orbit.ico,0")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows shortcuts")
+def test_a_shortcut_made_by_somebody_else_is_left_alone(tmp_path: Path) -> None:
+    link = tmp_path / "Desktop" / "Orbit.lnk"
+    link.parent.mkdir()
+    make = (
+        f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{link}');"
+        "$s.TargetPath=$env:ComSpec;$s.Arguments='/c echo mine';$s.Save()"
+    )
+    subprocess.run(["powershell", "-NoProfile", "-Command", make], check=True, timeout=60)
+    before = link.read_bytes()
+
+    done = shortcuts(tmp_path)
+    assert done.returncode == 0
+    assert "left alone" in done.stdout
+    assert link.read_bytes() == before
+    assert "Programs/Orbit/Orbit.lnk" in links(tmp_path)
+
+    assert shortcuts(tmp_path, "-Remove").returncode == 0
+    assert links(tmp_path) == ["Desktop/Orbit.lnk"]
+
+    assert shortcuts(tmp_path, "-Force").returncode == 0
+    assert link.read_bytes() != before

@@ -120,7 +120,7 @@ flowchart LR
 Python 3.13, FastAPI, SQLAlchemy 2, Alembic, SQLite · React 19, TypeScript, TanStack, Tailwind, shadcn/ui · uv, ruff,
 mypy strict, pytest, Vitest, Playwright, axe.
 
-`sh bin/check` в Git Bash (или `bin\check`) запускает то же, что CI: линт, типы, 556 теста бэкенда, 207 тестов фронта и
+`sh bin/check` в Git Bash (или `bin\check`) запускает то же, что CI: линт, типы, 557 теста бэкенда, 207 тестов фронта и
 131 сценарий в Edge, включая доступность в обеих темах.
 
 ## Ограничения
