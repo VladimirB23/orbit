@@ -23,6 +23,7 @@ ICON = Path(__file__).resolve().parents[3] / "bin" / "orbit.ico"
 
 VT_LPWSTR = 31
 GPS_READWRITE = 2
+APARTMENT = 2
 GET_VALUE, SET_VALUE, COMMIT, RELEASE = 5, 6, 7, 2  # places in the table of IPropertyStore
 
 
@@ -50,6 +51,11 @@ def _guid(text: str) -> _Guid:
 IPROPERTYSTORE = "{886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99}"
 
 
+def _start_com() -> None:
+    """Every thread that touches properties needs COM; asking twice does no harm."""
+    ctypes.WinDLL("ole32").CoInitializeEx(None, APARTMENT)
+
+
 class Store:
     """Properties of a window or of a shortcut file."""
 
@@ -60,6 +66,7 @@ class Store:
 
     @classmethod
     def of_window(cls, handle: int) -> "Store":
+        _start_com()
         shell = ctypes.WinDLL("shell32")
         pointer = ctypes.c_void_p()
         code = shell.SHGetPropertyStoreForWindow(
@@ -69,6 +76,7 @@ class Store:
 
     @classmethod
     def of_file(cls, path: Path) -> "Store":
+        _start_com()
         shell = ctypes.WinDLL("shell32")
         pointer = ctypes.c_void_p()
         code = shell.SHGetPropertyStoreFromParsingName(
@@ -168,7 +176,6 @@ def adopt_windows(
     """Waits for a new window and takes it in; a browser that says no is left as it is."""
     if sys.platform != "win32":
         return False
-    ctypes.WinDLL("ole32").CoInitializeEx(None, 2)
     end = time.monotonic() + seconds
     while True:
         try:
@@ -189,6 +196,5 @@ def relaunch_command(arguments: list[str]) -> str:
 
 if __name__ == "__main__":  # from shortcuts.ps1
     if os.name == "nt":
-        ctypes.WinDLL("ole32").CoInitializeEx(None, 2)
         for name in sys.argv[1:]:
             mark_shortcut(Path(name))
