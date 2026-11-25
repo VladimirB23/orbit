@@ -1,7 +1,7 @@
 # Orbit
 
 Локальный трекер проектов: Project → Milestone → Task, статусы, сроки, короткие комментарии;
-полный текст в Obsidian. Pet-проект для портфолио на GitHub (пока приватный).
+полный текст в Obsidian. Pet-проект.
 
 - Требования и этапы: `docs/PRD.md` (таблица «Этапы» — текущий статус проекта).
 - Решения: `docs/adr/` (стек — `0001-stack.md`).
@@ -11,8 +11,9 @@
 - `backend/src/orbit/`: `domain/` (правила, сервис `Orbit`, `events`, `analytics.py` и `sql/` - метрики), `db/` (модели, миграции Alembic),
   `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`, `journal.py` (разбор
   журналов сессий из Obsidian), `gitlog.py` (коммиты), `sync.py` (импорт сам, пока работает сервер), `export.py`
-  (CSV для Tableau), `seed.py` и `seed_history.py` (демо); тесты `backend/tests/`.
-- `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом.
+  (CSV для Tableau), `seed.py` и `seed_history.py` (демо), `desktop.py` и `local.py` (запуск без консоли); тесты `backend/tests/`.
+- `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом; `shortcuts.ps1` -
+  ярлыки (на компьютере владельца только после "да"), `orbit.ico` (рисует `frontend/scripts/icon.mjs`).
 - `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны; `tree` и
   `timeline` - два вида одних строк, `?screen=timeline`; `analytics` - третий экран, `?screen=analytics`),
   `src/components/ui/` (shadcn), `src/index.css` (все цвета и отступы), `e2e/` (Playwright, свой сервер на тест).
@@ -64,6 +65,8 @@ orbit commit import                          # commits from git of project folde
 orbit stats [project] [--days 30]            # attention: sessions, commits, closed, share against priority
 orbit export --csv out/tableau               # star of CSV for Tableau + DICTIONARY.md; real data is labelled
 orbit serve [--port 8420] [--no-open]        # API + UI on 127.0.0.1 only; daily backup on start
+orbit app [--background]                     # Windows: server without a console and its own window (ADR 0009)
+orbit stop [--port 8420]                     # stops the server of this database, however it was started
 orbit openapi                                # API schema (used by npm run gen:api)
 orbit backup [--dir path]                    # default data/backups/
 orbit seed --demo [--reset]                  # fictional data into data/demo.db (never orbit.db)
@@ -73,7 +76,7 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 ```
 
 Окружение: `ORBIT_DB` — файл базы (по умолчанию `data/orbit.db`), `ORBIT_ACTOR` — кто меняет
-(`vladimir` по умолчанию, `claude` в сессиях Claude, `system`), `ORBIT_VAULT` — vault Obsidian вместо
+(`owner` по умолчанию, `claude` в сессиях Claude, `system`), `ORBIT_VAULT` — vault Obsidian вместо
 настройки рядом с базой. SQLAlchemy собирается без C-расширений
 (`no-binary-package` в `pyproject.toml`): Smart App Control блокирует его `.pyd`.
 
@@ -86,7 +89,7 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Новое поле строки: строка в `frontend/src/lib/columns.ts` и ветка в `features/tree/cells.tsx`. Один экземпляр `Orbit` = одно действие для отмены.
 - Что и где рисует таймлайн, решает `frontend/src/lib/timeline.ts` (тесты рядом); факт работы (`actual`) считает домен по `events`.
 - Метрика = файл в `domain/sql/` с комментарием, тест в `test_analytics.py`, определение в `docs/metrics.md`. Новая мера - строки в `activity_facts.sql`. Мало данных - график говорит, чего не хватает. Отмененное (`events.undoes`) в метрики не попадает.
-- Сроки Claude ставит сам, если они есть в разговоре (с источником); даты владельца не трогает, закрытому срок не ставит. Остальное ставит домен (`auto_dates`, ADR 0008).
+- Сроки Claude ставит сам, если они есть в разговоре (с источником); даты, поставленные человеком, не трогает, закрытому срок не ставит. Остальное ставит домен (`auto_dates`, ADR 0008).
 - Проект без папки - будущий (ADR 0010): завел папку - `orbit set project <slug> --repo`, история остается. Общую
   сессию про него пометь `orbit session about`.
 - Публиковать (Tableau Public, скриншоты, README) можно только данные из `demo*.db`.
@@ -99,4 +102,4 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Дизайн: токены цветов и отступов в одном месте; компоненты shadcn в `frontend/src/components/ui/` правим свободно.
 - Dogfooding: как только заработает CLI, этапы самого orbit ведутся в orbit.
 - В конце значимой работы предложи `/wrap-up` (заметки в `Inbox/orbit/`); журнал сессий пишется автоматически.
-- `git push` и публичный репозиторий — только после «да» владельца.
+- `git push` и публичный репозиторий — только после явного "да" владельца.

@@ -3,20 +3,21 @@
 import json
 import os
 import re
+import sys
 import webbrowser
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime, time, timedelta
-from http.client import HTTPConnection, HTTPException
 from pathlib import Path
-from typing import Annotated, Any
+from time import sleep
+from typing import Annotated, Any, NoReturn
 
 import typer
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from orbit import __version__, serialize
+from orbit import __version__, desktop, serialize
 from orbit.cli import render
 from orbit.config import (
     DEFAULT_DB_PATH,
@@ -40,6 +41,7 @@ from orbit.domain.service import Orbit
 from orbit.export import export_csv
 from orbit.gitlog import local_folder, read_commits
 from orbit.journal import read_journals
+from orbit.local import port_is_free, run_file
 from orbit.seed import seed_demo
 from orbit.seed_history import seed_history
 
@@ -700,22 +702,10 @@ def commit_import(ctx: typer.Context, json_out: JsonOpt = False) -> None:
 # FastAPI is imported only here: every other command stays fast.
 
 
-def run_server(app: Any, port: int, *, on_ready: Callable[[], object]) -> None:
+def run_server(app: Any, port: int, *, on_ready: Callable[[], object], mark: Path) -> None:
     from orbit.api.server import run
 
-    run(app, port, on_ready)
-
-
-def running_orbit(port: int) -> str | None:
-    """Database name of an orbit server on this port, None if something else answers."""
-    connection = HTTPConnection("127.0.0.1", port, timeout=1)
-    try:
-        connection.request("GET", "/api/v1/meta")
-        return str(json.loads(connection.getresponse().read())["database"]["name"])
-    except (OSError, HTTPException, ValueError, KeyError, TypeError):
-        return None
-    finally:
-        connection.close()
+    run(app, port, on_ready, mark)
 
 
 @app.command()
@@ -727,13 +717,10 @@ def serve(
     ] = True,
 ) -> None:
     """API and interface on this computer only; stop with Ctrl+C."""
-    from orbit.api.app import create_app
-    from orbit.api.server import port_is_free
-
     db: Path = ctx.obj.db
     url = f"http://127.0.0.1:{port}"
     if not port_is_free(port):
-        running = running_orbit(port)
+        running = desktop.running_orbit(port)
         if running is None:
             typer.echo(f"error: port {port} is busy, choose another one: --port", err=True)
             raise typer.Exit(1)
@@ -741,19 +728,103 @@ def serve(
         if open_:
             webbrowser.open(url)
         return
-    copied = auto_backup(db, date.today())
-    if copied is not None:
-        typer.echo(f"backup: {copied}")
-    typer.echo(f"orbit with {db.name}: {url} (Ctrl+C to stop)")
+    typer.echo(f"orbit with {db.name}: {url} (Ctrl+C or orbit stop)")
     try:
-        settings = load_settings(db, os.environ)
+        start_server(db, port, on_ready=lambda: open_ and webbrowser.open(url), say=typer.echo)
     except OrbitError as exc:
         fail(exc, json_out=False)
-        return
+
+
+def start_server(
+    db: Path, port: int, *, on_ready: Callable[[], object], say: Callable[[str], object]
+) -> None:
+    """The daily copy, the settings, the server; returns when it has stopped."""
+    from orbit.api.app import create_app
+
+    copied = auto_backup(db, date.today())
+    if copied is not None:
+        say(f"backup: {copied}")
+    settings = load_settings(db, os.environ)
     server = create_app(
         db, vault=settings.vault, auto_dates=settings.auto_dates, repos=not is_demo(db)
     )
-    run_server(server, port, on_ready=lambda: open_ and webbrowser.open(url))
+    run_server(server, port, on_ready=on_ready, mark=run_file(db, port))
+
+
+@app.command("app")
+def app_(
+    ctx: typer.Context,
+    port: Annotated[int, typer.Option(help="Port on 127.0.0.1.")] = DEFAULT_PORT,
+    background: Annotated[
+        bool, typer.Option("--background", help="Only the server, no window (for logon).")
+    ] = False,
+) -> None:
+    """Windows: server without a console and a window of its own; run again to open the window."""
+    db: Path = ctx.obj.db
+    if sys.platform != "win32":
+        typer.echo("error: only for Windows, use: orbit serve", err=True)
+        raise typer.Exit(1)
+    if Path(sys.executable).name.lower() != "pythonw.exe":
+        flags = ["--background"] if background else []
+        desktop.start_windowless(["--db", str(db), "app", "--port", str(port), *flags])
+        return
+    db.parent.mkdir(parents=True, exist_ok=True)
+    log = db.with_suffix(".log")
+
+    def serve_quietly(on_ready: Callable[[], object]) -> None:
+        # There is no console: what the server says goes to a file next to the database.
+        with desktop.open_log(log) as out, redirect_stdout(out), redirect_stderr(out):
+            start_server(db, port, on_ready=on_ready, say=print)
+
+    desktop.launch(
+        db_name=db.name,
+        port=port,
+        log=log,
+        background=background,
+        claim=lambda: desktop.claim(port),
+        serve=serve_quietly,
+        open_window=desktop.open_window,
+        tell=desktop.tell,
+    )
+
+
+@app.command()
+def stop(
+    ctx: typer.Context,
+    port: Annotated[int, typer.Option(help="Port of the server.")] = DEFAULT_PORT,
+    quiet: Annotated[
+        bool, typer.Option("--quiet", help="For a shortcut: speak only of trouble, in a window.")
+    ] = False,
+) -> None:
+    """Stop the server of this database, however it was started."""
+    db: Path = ctx.obj.db
+    mark = run_file(db, port)
+    marked = mark.exists()
+    mark.unlink(missing_ok=True)
+    if port_is_free(port):
+        if not quiet:
+            typer.echo("orbit is not running")
+        return
+    if not marked:
+        problem = f"port {port} is used by a program that was not started with {db.name}"
+        if desktop.running_orbit(port) is not None:
+            problem = f"orbit on port {port} works with another database"
+        _trouble(problem, quiet)
+    for _ in range(50):
+        if port_is_free(port):
+            if not quiet:
+                typer.echo("orbit stopped")
+            return
+        sleep(0.2)
+    _trouble(f"orbit on port {port} did not stop in 10 s", quiet)
+
+
+def _trouble(text: str, quiet: bool) -> NoReturn:
+    if quiet:
+        desktop.tell(text)
+    else:
+        typer.echo(f"error: {text}", err=True)
+    raise typer.Exit(1)
 
 
 @app.command()

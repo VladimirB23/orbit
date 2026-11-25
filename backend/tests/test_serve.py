@@ -147,7 +147,7 @@ def started(monkeypatch: pytest.MonkeyPatch) -> list[int]:
     """Replaces the blocking server; records the port it was asked to listen on."""
     ports: list[int] = []
 
-    def fake(_app: object, port: int, *, on_ready: object) -> None:
+    def fake(_app: object, port: int, *, on_ready: object, mark: Path) -> None:
         ports.append(port)
 
     monkeypatch.setattr("orbit.cli.commands.run_server", fake)
@@ -158,7 +158,7 @@ def test_serve_backs_up_the_database_and_starts(
     filled_db: Path, started: list[int], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # The real orbit may be running on the default port right now.
-    monkeypatch.setattr("orbit.api.server.port_is_free", lambda _port: True)
+    monkeypatch.setattr("orbit.cli.commands.port_is_free", lambda _port: True)
     result = CliRunner().invoke(cli, ["--db", str(filled_db), "serve", "--no-open"])
     assert result.exit_code == 0, result.output
     assert "http://127.0.0.1:8420" in result.output

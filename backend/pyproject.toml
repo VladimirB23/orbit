@@ -5,6 +5,7 @@ description = "Local-first project tracker for one person and an AI agent"
 authors = [
     { name = "Vladimir Bystrov", email = "206220498+VladimirB23@users.noreply.github.com" }
 ]
+license = "MIT"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.1",
@@ -43,6 +44,8 @@ allowed-confusables = ["–"]
 "src/orbit/db/migrations/versions/*" = ["E501"]
 # The dictionary of the export is in Russian
 "src/orbit/export.py" = ["RUF001"]
+# So are the messages of the desktop launcher
+"src/orbit/desktop.py" = ["RUF001"]
 "tests/test_export.py" = ["RUF001"]
 
 [tool.mypy]
