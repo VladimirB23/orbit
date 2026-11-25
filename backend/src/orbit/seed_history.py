@@ -268,15 +268,15 @@ class _Story:
 def seed_history(session: Session, until: date) -> dict[str, int]:
     clock = ReplayClock(until)
     story = _Story(until)
-    vlad = Orbit(session, Actor.VLADIMIR, clock)
+    owner = Orbit(session, Actor.OWNER, clock)
     claude = Orbit(session, Actor.CLAUDE, clock)
-    vlad.batch = claude.batch = None  # a whole story is not one action to undo
+    owner.batch = claude.batch = None  # a whole story is not one action to undo
 
     for plan in PLANS:
-        _project(story, plan, vlad, claude)
-    story.at(120, 22, lambda: vlad.add_project("reading-list", name="Reading List"))
+        _project(story, plan, owner, claude)
+    story.at(120, 22, lambda: owner.add_project("reading-list", name="Reading List"))
     for n, title in enumerate(("Pick a stack", "Import the old list", "Map the shelves")):
-        story.at(121 + n, 22, lambda t=title: vlad.add_task("reading-list", t))  # type: ignore[misc]
+        story.at(121 + n, 22, lambda t=title: owner.add_task("reading-list", t))  # type: ignore[misc]
 
     for moment, _, action in sorted(story.actions, key=lambda a: a[:2]):
         clock.local(moment)
@@ -294,12 +294,12 @@ def seed_history(session: Session, until: date) -> dict[str, int]:
     }
 
 
-def _project(story: _Story, plan: Plan, vlad: Orbit, claude: Orbit) -> None:
+def _project(story: _Story, plan: Plan, owner: Orbit, claude: Orbit) -> None:
     begin = DAYS - plan.begins
     story.at(
         begin,
         9,
-        lambda: vlad.add_project(
+        lambda: owner.add_project(
             plan.slug,
             name=plan.name,
             summary=plan.summary,
@@ -309,21 +309,21 @@ def _project(story: _Story, plan: Plan, vlad: Orbit, claude: Orbit) -> None:
             repo_path=f"D:\\Projects\\{plan.slug}",
         ),
     )
-    story.at(begin, 10, lambda: vlad.update_project(plan.slug, status=S.IN_PROGRESS))
+    story.at(begin, 10, lambda: owner.update_project(plan.slug, status=S.IN_PROGRESS))
     stop = DAYS - plan.pauses if plan.pauses is not None else DAYS + 400
 
     day: float = begin + 1
     for number, kind in enumerate(plan.milestones):
-        day = _milestone(story, plan, kind, day, stop, (vlad, claude))
+        day = _milestone(story, plan, kind, day, stop, (owner, claude))
         if number == len(plan.milestones) - 1 and plan.pauses is None and day < DAYS - 6:
             end = story.workday(day)
-            story.at(end, 21, lambda: vlad.update_project(plan.slug, status=S.DONE, force=True))
-            story.at(end + 5, 12, lambda: vlad.archive_project(plan.slug))
+            story.at(end, 21, lambda: owner.update_project(plan.slug, status=S.DONE, force=True))
+            story.at(end + 5, 12, lambda: owner.archive_project(plan.slug))
     if plan.pauses is not None:
         story.at(
             stop,
             20,
-            lambda: vlad.update_project(
+            lambda: owner.update_project(
                 plan.slug, status=S.PAUSED, summary="Paused until the churn analysis is done"
             ),
         )
@@ -333,7 +333,7 @@ def _milestone(
     story: _Story, plan: Plan, kind: str, day: float, stop: int, actors: tuple[Orbit, Orbit]
 ) -> float:
     """Two lanes of tasks; returns the day the milestone was over."""
-    rnd, (vlad, claude) = story.rnd, actors
+    rnd, (owner, claude) = story.rnd, actors
     begin = story.workday(day)
     titles = WORK[kind]
     # The plan is made before the work: from a typical pace, and too brave where there is data.
@@ -348,7 +348,7 @@ def _milestone(
         )
 
     story.at(max(begin - 2, DAYS - plan.begins), 11, add)
-    story.at(begin, 11, lambda: vlad.update_milestone(row["m"].id, status=S.IN_PROGRESS), 30)
+    story.at(begin, 11, lambda: owner.update_milestone(row["m"].id, status=S.IN_PROGRESS), 30)
 
     lanes = [float(begin), float(begin)]
     ends = [begin]
@@ -362,9 +362,11 @@ def _milestone(
     if over > due and rnd.random() < 0.45:
         # Seen coming: the deadline is moved once, and not far enough.
         later = due + rnd.randint(2, 4)
-        story.at(due - 1, 19, lambda: vlad.update_milestone(row["m"].id, due_date=story.day(later)))
+        story.at(
+            due - 1, 19, lambda: owner.update_milestone(row["m"].id, due_date=story.day(later))
+        )
     if over <= stop:
-        done = lambda: vlad.update_milestone(row["m"].id, status=S.DONE, force=True)  # noqa: E731
+        done = lambda: owner.update_milestone(row["m"].id, status=S.DONE, force=True)  # noqa: E731
         story.at(over, 21, done)
     return over + rnd.randint(0, 2)
 
@@ -378,9 +380,9 @@ def _task(
     parent: dict[str, Milestone],
     actors: tuple[Orbit, Orbit],
 ) -> int:
-    rnd, (vlad, claude) = story.rnd, actors
+    rnd, (owner, claude) = story.rnd, actors
     born, start, stop = days
-    who = claude if rnd.random() < 0.6 else vlad
+    who = claude if rnd.random() < 0.6 else owner
     minute = rnd.randint(0, 59)
     row: dict[str, Task] = {}
     luck = rnd.random()

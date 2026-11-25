@@ -61,4 +61,4 @@ def clock() -> FakeClock:
 
 @pytest.fixture
 def orbit(session: Session, clock: FakeClock) -> Orbit:
-    return Orbit(session, actor=Actor.VLADIMIR, clock=clock)
+    return Orbit(session, actor=Actor.OWNER, clock=clock)

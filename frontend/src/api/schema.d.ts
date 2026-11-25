@@ -126,7 +126,7 @@ export interface paths {
         put?: never;
         /**
          * Undo Last
-         * @description Take back the last action of Vladimir; 409 when somebody has changed it since.
+         * @description Take back the last action of the owner; 409 when somebody has changed it since.
          */
         post: operations["undo_last_api_v1_undo_post"];
         delete?: never;
@@ -334,7 +334,7 @@ export interface components {
          * Actor
          * @enum {string}
          */
-        Actor: "vladimir" | "claude" | "system";
+        Actor: "owner" | "claude" | "system";
         /**
          * ActualOut
          * @description Dates from the journal, not from the plan.

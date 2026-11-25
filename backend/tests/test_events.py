@@ -12,7 +12,7 @@ def test_create_writes_one_event_with_snapshot(orbit: Orbit) -> None:
     p = orbit.add_project("orbit", name="Orbit", due_date=date(2026, 12, 20))
     [e] = orbit.events()
     assert (e.actor, e.entity, e.entity_id, e.action, e.field) == (
-        "vladimir",
+        "owner",
         "project",
         p.id,
         "create",

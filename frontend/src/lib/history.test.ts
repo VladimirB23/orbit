@@ -67,13 +67,13 @@ describe('groupEvents', () => {
     const groups = groupEvents([
       event({ id: 4, at: '2026-11-24T10:00:01Z', field: 'status' }),
       event({ id: 3, at: '2026-11-24T10:00:00Z', field: 'due_date' }),
-      event({ id: 2, at: '2026-11-24T10:00:00Z', actor: 'vladimir' }),
-      event({ id: 1, at: '2026-11-23T10:00:00Z', actor: 'vladimir', action: 'create' }),
+      event({ id: 2, at: '2026-11-24T10:00:00Z', actor: 'owner' }),
+      event({ id: 1, at: '2026-11-23T10:00:00Z', actor: 'owner', action: 'create' }),
     ]);
     expect(groups.map((g) => [g.actor, g.events.map((e) => e.id)])).toEqual([
       ['claude', [4, 3]],
-      ['vladimir', [2]],
-      ['vladimir', [1]],
+      ['owner', [2]],
+      ['owner', [1]],
     ]);
   });
 });

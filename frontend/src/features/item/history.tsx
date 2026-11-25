@@ -7,7 +7,7 @@ import { describeEvent, groupEvents } from '@/lib/history';
 import { cn } from '@/lib/utils';
 
 const ACTOR: Record<Actor, { name: string; mark: string; tone: string }> = {
-  vladimir: { name: 'Ты', mark: 'Я', tone: 'bg-selected text-planned' },
+  owner: { name: 'Ты', mark: 'Я', tone: 'bg-selected text-planned' },
   claude: { name: 'Claude', mark: 'C', tone: 'bg-sun-wash text-sun-ink' },
   system: { name: 'Система', mark: 'S', tone: 'bg-raised text-muted-foreground' },
 };

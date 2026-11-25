@@ -209,7 +209,7 @@ def test_undo_with_nothing_left(run: Any) -> None:
 
 def test_undo_refuses_a_row_that_has_changed(run: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     run("project", "add", "a", "--name", "A")
-    monkeypatch.setenv("ORBIT_ACTOR", "vladimir")
+    monkeypatch.setenv("ORBIT_ACTOR", "owner")
     run("set", "project", "a", "--name", "B")
     monkeypatch.setenv("ORBIT_ACTOR", "claude")
     assert run("undo").exit_code == 4

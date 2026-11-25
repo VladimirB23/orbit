@@ -588,7 +588,7 @@
     "/api/v1/undo": {
       "post": {
         "summary": "Undo Last",
-        "description": "Take back the last action of Vladimir; 409 when somebody has changed it since.",
+        "description": "Take back the last action of the owner; 409 when somebody has changed it since.",
         "operationId": "undo_last_api_v1_undo_post",
         "responses": {
           "200": {
@@ -1686,7 +1686,7 @@
       "Actor": {
         "type": "string",
         "enum": [
-          "vladimir",
+          "owner",
           "claude",
           "system"
         ],

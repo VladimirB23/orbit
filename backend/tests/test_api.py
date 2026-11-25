@@ -1,4 +1,4 @@
-"""HTTP contract of /api/v1: same domain rules as the CLI, signed by Vladimir."""
+"""HTTP contract of /api/v1: same domain rules as the CLI, signed by the owner."""
 
 from collections.abc import Iterator
 from datetime import timedelta
@@ -211,12 +211,12 @@ def test_unknown_api_path_is_json_404(client: TestClient) -> None:
 # --- journal ------------------------------------------------------------------
 
 
-def test_ui_edits_are_signed_by_vladimir_even_in_a_claude_session(
+def test_ui_edits_are_signed_by_the_owner_even_in_a_claude_session(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("ORBIT_ACTOR", "claude")
     post(client, "/api/v1/projects", {"slug": "a", "name": "A"})
-    assert [e["actor"] for e in client.get("/api/v1/events").json()] == ["vladimir"]
+    assert [e["actor"] for e in client.get("/api/v1/events").json()] == ["owner"]
 
 
 def test_events_of_one_item_come_newest_first_with_limit(

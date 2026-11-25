@@ -139,8 +139,8 @@ def test_what_was_undone_is_not_exported(
     orbit: Orbit, session: Session, clock: FakeClock, out: Path
 ) -> None:
     orbit.add_project("a", name="A")
-    Orbit(session, Actor.VLADIMIR, clock).update_project("a", status=Status.IN_PROGRESS)
-    undo(Orbit(session, Actor.VLADIMIR, clock))
+    Orbit(session, Actor.OWNER, clock).update_project("a", status=Status.IN_PROGRESS)
+    undo(Orbit(session, Actor.OWNER, clock))
     export_csv(orbit, out, private=True)
     assert [r["status"] for r in read(out, "fact_status_change")] == ["backlog"]
 

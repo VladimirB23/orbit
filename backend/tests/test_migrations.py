@@ -176,3 +176,45 @@ def test_sessions_survive_the_upgrade_to_topics(db_file: Path) -> None:
     with pytest.raises(IntegrityError), engine.begin() as conn:
         conn.execute(text("UPDATE sessions SET topic_id = 999"))
     engine.dispose()
+
+
+def test_the_journal_survives_the_new_name_of_its_owner(db_file: Path) -> None:
+    engine = make_engine(db_file)
+    upgrade(engine, "0005")
+    insert = (
+        "INSERT INTO events (at, actor, entity, entity_id, action, field, old_value, new_value,"
+        " batch, undoes) VALUES (:now, :actor, 'task', 1, 'update', 'title', 'A', 'B', 'b1', 'b0')"
+    )
+    with engine.begin() as conn:
+        for actor in ("vladimir", "claude", "system"):
+            conn.execute(text(insert), {"now": NOW, "actor": actor})
+    read = "SELECT id, actor, entity, entity_id, action, field, old_value, new_value, batch, undoes"
+    upgrade(engine)
+    with engine.connect() as conn:
+        rows = [tuple(r) for r in conn.execute(text(f"{read} FROM events ORDER BY id"))]
+        indexes = {i["name"] for i in inspect(engine).get_indexes("events")}
+    rest = ("task", 1, "update", "title", "A", "B", "b1", "b0")
+    assert rows == [(1, "owner", *rest), (2, "claude", *rest), (3, "system", *rest)]
+    assert indexes == {"ix_events_entity", "ix_events_at", "ix_events_batch"}
+    downgrade(engine, "0005")
+    with engine.connect() as conn:
+        actors = conn.execute(text("SELECT actor FROM events ORDER BY id")).scalars().all()
+    assert actors == ["vladimir", "claude", "system"]
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("column", "value"), [("actor", "vladimir"), ("entity", "session"), ("action", "guess")]
+)
+def test_the_rebuilt_journal_still_refuses_unknown_words(
+    engine: Engine, column: str, value: str
+) -> None:
+    row = {"actor": "owner", "entity": "task", "action": "update"} | {column: value}
+    with pytest.raises(IntegrityError), engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO events (at, actor, entity, entity_id, action)"
+                f" VALUES ('{NOW}', :actor, :entity, 1, :action)"
+            ),
+            row,
+        )

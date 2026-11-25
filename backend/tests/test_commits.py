@@ -151,7 +151,7 @@ def test_imported_commits_do_not_block_undo_of_a_new_project(
 ) -> None:
     orbit.add_project("a", name="A")
     orbit.import_commits("a", records(("s1", T1)))
-    undo(Orbit(session, actor=Actor.VLADIMIR, clock=orbit.clock))
+    undo(Orbit(session, actor=Actor.OWNER, clock=orbit.clock))
     assert orbit.list_projects() == []
     session.expire_all()
     assert session.scalars(select(Commit)).all() == []

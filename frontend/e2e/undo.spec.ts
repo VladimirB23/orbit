@@ -1,6 +1,6 @@
 import { expand, expect, panel, row, test } from './fixtures';
 
-// The server of the tests belongs to the interface, so its changes are Vladimir's.
+// The server of the tests belongs to the interface, so its changes are the owner's.
 
 test('Ctrl+Z takes back a status, Ctrl+Shift+Z returns it', async ({ page, orbit: _ }) => {
   const target = row(page, 'Reading List');

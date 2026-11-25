@@ -32,10 +32,10 @@ StateDep = Annotated[AppState, Depends(get_state)]
 
 def get_orbit(state: StateDep) -> Iterator[Orbit]:
     """One request = one transaction. ORBIT_ACTOR is ignored on purpose: the
-    interface belongs to Vladimir even when the server was started by Claude.
+    interface belongs to the owner even when the server was started by Claude.
     """
     with Session(state.engine, expire_on_commit=False) as session:
-        yield Orbit(session, actor=Actor.VLADIMIR, clock=state.clock, auto_dates=state.auto_dates)
+        yield Orbit(session, actor=Actor.OWNER, clock=state.clock, auto_dates=state.auto_dates)
         session.commit()
 
 
@@ -115,7 +115,7 @@ def analytics(
 
 @router.post("/undo")
 def undo_last(orbit: OrbitDep) -> s.UndoneOut:
-    """Take back the last action of Vladimir; 409 when somebody has changed it since."""
+    """Take back the last action of the owner; 409 when somebody has changed it since."""
     return s.UndoneOut.model_validate(undo.undo(orbit))
 
 

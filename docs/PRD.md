@@ -5,7 +5,7 @@ v0.7 · 2026-11-25 · этапы 1-5 готовы; модель: `docs/adr/0002-
 ## Проблема
 
 Проекты, сессии с Claude, советы и решения разбросаны по папкам, чатам и заметкам. Нет одного
-места, где за минуту видно: что в работе, на каком этапе, какие сроки, что подвисло и в каких проектах. []()
+места, где за минуту видно: что в работе, на каком этапе, какие сроки, что подвисло и в каких проектах.
 
 ## Пользователи
 
@@ -30,7 +30,7 @@ v0.7 · 2026-11-25 · этапы 1-5 готовы; модель: `docs/adr/0002-
 | `projects` | id, slug (уникальный, = папка в `D:\Projects`), name, status, priority, start_date, due_date, summary (до 140 симв.), obsidian_path, repo_path, github_url, position, created_at, updated_at, done_at, archived_at |
 | `milestones` | id, project_id, name, status, start_date, due_date, summary, position, created_at, updated_at, done_at |
 | `tasks` | id, project_id, milestone_id?, parent_id?, title, status, priority, start_date, due_date, comment (до 280 симв.), position, created_at, updated_at, done_at |
-| `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value, batch (действие), undoes (что отменяет) |
+| `events` | id, at, actor (`owner` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value, batch (действие), undoes (что отменяет) |
 | `sessions` | id, external_id (id сессии Claude), project_id, started_at, ended_at, title, prompts, files, commits (числа), folder, topic_id (о каком проекте, если шла в другом) — импорт журналов сессий из Obsidian (ADR 0004, 0010) |
 | `commits` | id, project_id, sha, committed_at — из git папки проекта (ADR 0007) |
 
@@ -42,7 +42,7 @@ v0.7 · 2026-11-25 · этапы 1-5 готовы; модель: `docs/adr/0002-
 - **Сроки сами** (`auto_dates = true` в `data/orbit.toml`): пункт без срока получает его, когда становится
   запланированным или в работе; идеи и паузы без срока (ADR 0008).
 - **Просрочено:** due_date < сегодня и статус не `done`/`canceled`.
-- **Кто изменил:** CLI пишет `actor` из переменной `ORBIT_ACTOR` (для сессий Claude = `claude`), интерфейс — `vladimir`.
+- **Кто изменил:** CLI пишет `actor` из переменной `ORBIT_ACTOR` (для сессий Claude = `claude`), интерфейс — `owner`.
 
 ## Экраны MVP
 
@@ -76,7 +76,7 @@ v0.7 · 2026-11-25 · этапы 1-5 готовы; модель: `docs/adr/0002-
 Мало данных - график говорит, чего не хватает. Отмененное, созданное сразу закрытым и сроки задним числом
 показатели не улучшают.
 
-**Tableau Public** - отдельно, для портфолио: `orbit export` → CSV → дашборд, только на вымышленной истории за
+**Tableau Public** - отдельно: `orbit export` → CSV → дашборд, только на вымышленной истории за
 полгода. Инструкция: `docs/tableau.md`. Живого подключения к локальной SQLite у Tableau Public нет, поэтому
 встроенная вкладка для работы, Tableau для показа.
 
@@ -128,7 +128,7 @@ orbit serve                       # API + UI on http://127.0.0.1:8420, this comp
 | 2   | API и интерфейс: дерево, панель, правка в ячейке, SSE                                | готово 24.11 (статус из CLI виден в UI за 2 с)      |
 | 3   | Связка: ссылки Obsidian, `/wrap-up` вызывает orbit, импорт журналов сессий, `Ctrl+K` | готово 24.11; затем разбор прошлых сессий в orbit + Obsidian |
 | 4   | Таймлайн этапов (Гант)                                                               | готово 24.11 (сроки тянутся мышью, план и факт)     |
-| 5   | Аналитика, `export`, дашборд Tableau Public                                          | код готов 25.11; дашборд собирает Владелец по `docs/tableau.md` |
+| 5   | Аналитика, `export`, дашборд Tableau Public                                          | код готов 25.11; дашборд отдельно, по `docs/tableau.md` |
 | 6   | Релиз: README ru/en, скриншоты, CI, публичный репозиторий (после «да»)               |                                                     |
 | 7   | MCP-сервер                                                                           | orbit доступен как инструменты в любой сессии       |
 | 8   | Вкладка "День": планер, календарь, привычки                                          | после релиза, предложение в ADR 0008                |
@@ -136,7 +136,12 @@ orbit serve                       # API + UI on http://127.0.0.1:8420, this comp
 
 ## После первой версии
 
-## Открытые вопросы
+- больше аналитики при таком же простом и понятном интерфейсе;
+- планер на день-два с календарем (только чтение встреч);
+- напоминания и повторяющиеся задачи: данные в orbit, доставка в мессенджер (ADR 0008);
+- MCP-сервер: orbit как инструменты в любой сессии агента.
 
-- ~~Какие 3 графика нужны каждый день?~~ Решено 25.11: фокус по сессиям и коммитам, сроки, активность по времени (ADR 0007).
-- ~~Отдельный статус проекта «на паузе» или хватит `blocked`?~~ Решено: статус `paused` для всех уровней (ADR 0002). 
+## Решенные вопросы
+
+- Какие 3 графика нужны каждый день? Фокус по сессиям и коммитам, сроки, активность по времени (ADR 0007).
+- Отдельный статус "на паузе" или хватит `blocked`? Статус `paused` для всех уровней (ADR 0002).

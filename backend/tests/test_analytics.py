@@ -597,7 +597,7 @@ def test_a_deadline_set_by_the_closing_action_itself_is_not_a_plan(
     story.project()
     m = story.on(-30).orbit.add_milestone("a", "M")
     story.on(-5)
-    last = Orbit(session, Actor.VLADIMIR, story.clock)
+    last = Orbit(session, Actor.OWNER, story.clock)
     last.update_milestone(m.id, due_date=d(-5), status=DONE)
     story.on(0)
     assert whole(story.orbit).plan.set_after == 1
@@ -625,7 +625,7 @@ def test_a_cleared_deadline_is_no_plan(story: Story) -> None:
 
 def test_automatic_deadlines_are_named(story: Story, session: Session) -> None:
     story.project()
-    auto = Orbit(session, Actor.VLADIMIR, story.clock, auto_dates=True)
+    auto = Orbit(session, Actor.OWNER, story.clock, auto_dates=True)
     story.on(-30)
     m = auto.add_milestone("a", "M")
     story.on(-5).orbit.update_milestone(m.id, status=DONE)
@@ -649,9 +649,9 @@ def test_born_closed_milestones_are_not_compared(story: Story) -> None:
 def test_undone_start_is_not_a_start(story: Story, session: Session) -> None:
     story.project()
     task = story.on(-9).orbit.add_task("a", "T")
-    slip = Orbit(session, Actor.VLADIMIR, story.clock)
+    slip = Orbit(session, Actor.OWNER, story.clock)
     slip.update_task(task.id, status=WORK)
-    undo(Orbit(session, Actor.VLADIMIR, story.clock))
+    undo(Orbit(session, Actor.OWNER, story.clock))
     story.on(-5).orbit.update_task(task.id, status=WORK)
     story.on(-3).orbit.update_task(task.id, status=DONE)
     story.on(0)
@@ -661,8 +661,8 @@ def test_undone_start_is_not_a_start(story: Story, session: Session) -> None:
 def test_undone_edit_is_not_movement(story: Story, session: Session) -> None:
     story.on(-9).project()
     story.on(-4)
-    Orbit(session, Actor.VLADIMIR, story.clock).update_project("a", status=Status.PAUSED)
-    undo(Orbit(session, Actor.VLADIMIR, story.clock))
+    Orbit(session, Actor.OWNER, story.clock).update_project("a", status=Status.PAUSED)
+    undo(Orbit(session, Actor.OWNER, story.clock))
     story.on(0)
     [row] = whole(story.orbit).focus
     assert row.last_day is None
@@ -689,7 +689,7 @@ def test_sql_and_python_agree_on_what_was_undone(
 
     def fresh() -> Orbit:
         clock.advance(minutes=1)
-        return Orbit(session, Actor.VLADIMIR, clock)
+        return Orbit(session, Actor.OWNER, clock)
 
     fresh().add_project("a", name="A")
     fresh().update_project("a", summary="1")

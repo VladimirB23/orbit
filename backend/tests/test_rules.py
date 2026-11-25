@@ -123,9 +123,9 @@ def test_parse_priority_rejects_out_of_range(value: int | str) -> None:
 # --- actor ------------------------------------------------------------------
 
 
-def test_actor_defaults_to_vladimir() -> None:
-    assert actor_from_env({}) is Actor.VLADIMIR
-    assert actor_from_env({"ORBIT_ACTOR": ""}) is Actor.VLADIMIR
+def test_actor_defaults_to_the_owner() -> None:
+    assert actor_from_env({}) is Actor.OWNER
+    assert actor_from_env({"ORBIT_ACTOR": ""}) is Actor.OWNER
 
 
 def test_actor_is_read_from_orbit_actor() -> None:

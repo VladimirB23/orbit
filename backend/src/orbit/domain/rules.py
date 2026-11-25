@@ -211,10 +211,10 @@ def parse_priority(value: int | str) -> Priority:
 
 
 def actor_from_env(environ: Mapping[str, str]) -> Actor:
-    """ORBIT_ACTOR names who makes the change; unset means Vladimir at the terminal."""
+    """ORBIT_ACTOR names who makes the change; unset means the owner at the terminal."""
     raw = environ.get("ORBIT_ACTOR", "").strip().lower()
     if not raw:
-        return Actor.VLADIMIR
+        return Actor.OWNER
     try:
         return Actor(raw)
     except ValueError:

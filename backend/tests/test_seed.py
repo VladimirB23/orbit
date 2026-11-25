@@ -34,7 +34,7 @@ def test_demo_history_is_spread_over_weeks_with_two_actors(
     events = Orbit(session, actor=Actor.SYSTEM, clock=clock).events()
     days = {e.at.date() for e in events}
     assert len(days) >= 10
-    assert {e.actor for e in events} == {"vladimir", "claude"}
+    assert {e.actor for e in events} == {"owner", "claude"}
     assert max(days) <= TODAY
 
 

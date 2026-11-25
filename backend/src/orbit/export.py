@@ -183,7 +183,7 @@ TABLES = (
             ("project_id", KEY, "Проект, которому это принадлежит"),
             ("old_status", TXT, "Прежний статус; пусто при создании"),
             ("status", TXT, "Новый статус, связь с dim_status"),
-            ("actor", TXT, "Кто: vladimir, claude или system"),
+            ("actor", TXT, "Кто: owner, claude или system"),
             ("is_birth", FLAG, "Статус при создании"),
         ),
     ),

@@ -27,7 +27,7 @@ class Priority(IntEnum):
 
 
 class Actor(StrEnum):
-    VLADIMIR = "vladimir"
+    OWNER = "owner"
     CLAUDE = "claude"
     SYSTEM = "system"
 

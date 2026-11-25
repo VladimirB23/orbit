@@ -21,7 +21,7 @@ type Do = Callable[..., Orbit]
 def do(session: Session, clock: FakeClock) -> Do:
     """Every call is one action: a new Orbit, as one request or one command."""
 
-    def make(actor: Actor = Actor.VLADIMIR) -> Orbit:
+    def make(actor: Actor = Actor.OWNER) -> Orbit:
         clock.advance(seconds=1)
         return Orbit(session, actor=actor, clock=clock)
 
@@ -200,10 +200,10 @@ def test_does_not_touch_the_work_of_others(do: Do) -> None:
 def test_claude_takes_back_only_its_own(do: Do) -> None:
     do().add_project("a", name="A")
     do(Actor.CLAUDE).update_project("a", summary="Claude")
-    do().update_project("a", name="Vladimir")
+    do().update_project("a", name="B")
     undo(do(Actor.CLAUDE))
     row = do().get_project("a")
-    assert (row.summary, row.name) == (None, "Vladimir")
+    assert (row.summary, row.name) == (None, "B")
 
 
 def test_refuses_when_the_field_has_changed_since(do: Do) -> None:
