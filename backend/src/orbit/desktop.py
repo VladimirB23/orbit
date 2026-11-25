@@ -4,6 +4,7 @@ import ctypes
 import json
 import subprocess
 import sys
+import threading
 import time
 import webbrowser
 from collections.abc import Callable
@@ -11,6 +12,7 @@ from http.client import HTTPConnection, HTTPException
 from pathlib import Path
 from typing import TextIO
 
+from orbit import taskbar
 from orbit.local import HOST, port_is_free
 
 BROWSERS = ("chrome.exe", "msedge.exe")
@@ -126,13 +128,16 @@ def find_browser(look_up: Callable[[str], str | None] = registered_program) -> s
     return next((path for name in BROWSERS if (path := look_up(name))), None)
 
 
-def open_window(url: str) -> None:
+def open_window(url: str, relaunch: list[str]) -> None:
     """A window without tabs and an address line; an ordinary tab where there is no such browser."""
     browser = find_browser()
     if browser is None:
         webbrowser.open(url)
     else:
         subprocess.Popen([browser, f"--app={url}"], close_fds=True)
+        # Not in the way of the server: the window takes a moment to appear.
+        command = taskbar.relaunch_command(relaunch)
+        threading.Thread(target=taskbar.adopt_windows, args=(command,)).start()
 
 
 def tell(text: str) -> None:

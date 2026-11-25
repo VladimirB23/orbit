@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from orbit import desktop
+from orbit import desktop, taskbar
 from orbit.api import server
 from orbit.api.app import create_app
 from orbit.cli import app as cli
@@ -413,3 +413,74 @@ def test_a_shortcut_made_by_somebody_else_is_left_alone(tmp_path: Path) -> None:
 
     assert shortcuts(tmp_path, "-Force").returncode == 0
     assert link.read_bytes() != before
+
+
+# --- taskbar ------------------------------------------------------------------------
+
+
+def read(store: taskbar.Store, pid: int) -> str | None:
+    try:
+        return store.get(pid)
+    finally:
+        store.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows taskbar")
+def test_shortcuts_that_open_a_window_carry_its_id(tmp_path: Path) -> None:
+    assert shortcuts(tmp_path).returncode == 0
+    ids = {
+        name: read(taskbar.Store.of_file(tmp_path / name), taskbar.ID) for name in links(tmp_path)
+    }
+    assert ids == {
+        "Desktop/Orbit.lnk": taskbar.APP_ID,
+        "Programs/Orbit/Orbit.lnk": taskbar.APP_ID,
+        "Programs/Orbit/Stop Orbit.lnk": None,
+    }
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows taskbar")
+def test_a_window_gets_the_id_and_the_way_to_start_again() -> None:
+    import ctypes
+
+    user = ctypes.WinDLL("user32")
+    user.CreateWindowExW.restype = ctypes.c_void_p
+    handle = user.CreateWindowExW(0, "STATIC", "Orbit", 0, 0, 0, 1, 1, None, None, None, None)
+    try:
+        assert taskbar.mark_window(handle, "pythonw -m orbit app") is True
+        assert taskbar.mark_window(handle, "another") is False
+        assert read(taskbar.Store.of_window(handle), taskbar.ID) == taskbar.APP_ID
+        command = read(taskbar.Store.of_window(handle), taskbar.RELAUNCH_COMMAND)
+        assert command == "pythonw -m orbit app"
+    finally:
+        user.DestroyWindow(ctypes.c_void_p(handle))
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows taskbar")
+def test_waits_until_the_window_appears() -> None:
+    seen = iter([[], [], [7]])
+    marked: list[tuple[int, str]] = []
+
+    def mark(handle: int, command: str) -> bool:
+        marked.append((handle, command))
+        return True
+
+    assert taskbar.adopt_windows("run", windows=lambda: next(seen), mark=mark) is True
+    assert marked == [(7, "run")]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows taskbar")
+def test_gives_up_quietly() -> None:
+    def refuse(_handle: int, _command: str) -> bool:
+        raise OSError("access denied")
+
+    assert taskbar.adopt_windows("run", windows=lambda: [7], mark=refuse) is False
+    assert taskbar.adopt_windows("run", seconds=0.1, windows=list) is False
+
+
+def test_the_icon_is_where_the_taskbar_will_look() -> None:
+    assert taskbar.ICON.is_file()
+
+
+def test_a_path_with_a_space_survives_in_the_command() -> None:
+    command = taskbar.relaunch_command(["--db", "C:\\my data\\orbit.db", "app"])
+    assert command.endswith('-m orbit --db "C:\\my data\\orbit.db" app')

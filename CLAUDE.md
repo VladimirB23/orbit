@@ -11,7 +11,7 @@
 - `backend/src/orbit/`: `domain/` (правила, сервис `Orbit`, `events`, `analytics.py` и `sql/` - метрики), `db/` (модели, миграции Alembic),
   `api/` (FastAPI `/api/v1`, SSE, защита localhost), `cli/` (Typer), `serialize.py`, `journal.py` (разбор
   журналов сессий из Obsidian), `gitlog.py` (коммиты), `sync.py` (импорт сам, пока работает сервер), `export.py`
-  (CSV для Tableau), `seed.py` и `seed_history.py` (демо), `desktop.py` и `local.py` (запуск без консоли); тесты `backend/tests/`.
+  (CSV для Tableau), `seed.py` и `seed_history.py` (демо), `desktop.py`, `taskbar.py` и `local.py` (запуск без консоли); тесты `backend/tests/`.
 - `bin/`: запускатели `orbit` (Git Bash) и `orbit.cmd` (PowerShell); `check` - все проверки разом; `shortcuts.ps1` -
   ярлыки (на компьютере владельца только после "да"), `orbit.ico` (рисует `frontend/scripts/icon.mjs`).
 - `frontend/`: React: `src/lib/` (чистая логика с тестами), `src/api/` (данные), `src/features/` (экраны; `tree` и

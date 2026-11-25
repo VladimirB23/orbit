@@ -4,9 +4,9 @@
 
 <!-- The link to the Tableau Public dashboard goes here. -->
 
-**A local project tracker for one person and an AI agent, with analytics that show where attention really goes.**
-Claude reads and changes the data through a CLI, the browser shows the change within two seconds, and every edit can
-be undone by the journal. [Русская версия](README.ru.md)
+**One place to control every project: the ones in work and the ones that are only ideas, down to single sessions with
+Claude.** Orbit shows what comes first, what is being neglected and what can be dropped and forgotten. Claude reads and
+changes the data through a CLI, the screen follows within two seconds, every edit can be undone. [Русская версия](README.ru.md)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/analytics-dark.png">
@@ -15,11 +15,16 @@ be undone by the journal. [Русская версия](README.ru.md)
 
 *All data in the pictures is fictional. The interface is in Russian, the code and the CLI are in English.*
 
-## The question it answers
+## What it is for
 
-I run several projects at once, and much of the work happens in sessions with an AI agent. A list of deadlines does not
-say which project gets my time and which one is only "high priority" on paper. Orbit compares the two: the share of
-sessions and commits against the share the priorities ask for.
+I run several projects at once and keep a queue of ideas, and most of the work happens in sessions with Claude. Those
+sessions, promises and half-started ideas used to be scattered over folders and chats. Orbit keeps all of it in view:
+
+- **Everything in one tree:** projects, milestones and tasks; ideas without a folder stay apart until they become projects.
+- **Sessions under control:** each Claude session is tied to the project it was about, with its volume and a command to
+  continue it.
+- **First things first:** the share of sessions and commits each project gets against the share its priority asks for.
+- **What to drop:** how long a project has stood still, what is overdue, what never left the idea stage.
 
 On the demo history above, the project with the highest priority got 1 of 134 sessions in 90 days. The data is
 generated and this effect was put there on purpose; the screen is what finds it.
@@ -120,7 +125,7 @@ schema, and a test fails when they are out of date.
 Python 3.13, FastAPI, SQLAlchemy 2, Alembic, SQLite · React 19, TypeScript, TanStack, Tailwind, shadcn/ui · uv, ruff,
 mypy strict, pytest, Vitest, Playwright, axe.
 
-`sh bin/check` in Git Bash (or `bin\check`) runs what CI runs: lint, types, 557 backend tests, 207 frontend tests and 131
+`sh bin/check` in Git Bash (or `bin\check`) runs what CI runs: lint, types, 563 backend tests, 207 frontend tests and 131
 scenarios in Edge, accessibility in both themes included.
 
 ## Limits

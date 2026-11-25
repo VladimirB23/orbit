@@ -45,6 +45,7 @@ $all = @(
     @{ Path = (Join-Path $startup 'Orbit.lnk'); Arguments = '-m orbit app --background'; About = 'Orbit at logon'; AtLogon = $true }
 )
 
+$python = Join-Path $backend '.venv\Scripts\python.exe'
 $shell = New-Object -ComObject WScript.Shell
 
 # Ours starts pythonw with "-m orbit"; anything else under the same name belongs to the person.
@@ -86,5 +87,7 @@ foreach ($one in $all) {
     $link.IconLocation = "$icon,0"
     $link.Description = $one.About
     $link.Save()
+    # The same id as the window has: one icon on the taskbar. Stopping is not a window.
+    if ($one.Arguments -like '-m orbit app*') { & $python -m orbit.taskbar $one.Path }
     "created $($one.Path)"
 }

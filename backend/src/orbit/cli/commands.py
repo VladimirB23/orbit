@@ -770,6 +770,8 @@ def app_(
         return
     db.parent.mkdir(parents=True, exist_ok=True)
     log = db.with_suffix(".log")
+    usual = db == DEFAULT_DB_PATH and port == DEFAULT_PORT
+    again = ["app"] if usual else ["--db", str(db), "app", "--port", str(port)]
 
     def serve_quietly(on_ready: Callable[[], object]) -> None:
         # There is no console: what the server says goes to a file next to the database.
@@ -783,7 +785,7 @@ def app_(
         background=background,
         claim=lambda: desktop.claim(port),
         serve=serve_quietly,
-        open_window=desktop.open_window,
+        open_window=lambda url: desktop.open_window(url, again),
         tell=desktop.tell,
     )
 
