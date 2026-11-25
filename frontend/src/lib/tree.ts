@@ -44,6 +44,8 @@ export interface TreeItem {
   doneAt: string | null;
   /** Fields only a project has. */
   project: ProjectOut | null;
+  /** A project without a folder: it is only talked about. */
+  future: boolean;
   children: TreeItem[];
 }
 
@@ -77,6 +79,7 @@ function fromTask(node: TaskNode, slug: string): TreeItem {
     updatedAt: task.updated_at,
     doneAt: task.done_at,
     project: null,
+    future: false,
     children: node.children.map((child) => fromTask(child, slug)),
   };
 }
@@ -107,6 +110,7 @@ function fromMilestone(node: MilestoneNode, slug: string): TreeItem {
     updatedAt: milestone.updated_at,
     doneAt: milestone.done_at,
     project: null,
+    future: false,
     children: node.tasks.map((task) => fromTask(task, slug)),
   };
 }
@@ -137,6 +141,7 @@ function fromProject(node: ProjectNode): TreeItem {
     updatedAt: project.updated_at,
     doneAt: project.done_at,
     project,
+    future: node.future,
     children: [
       ...node.milestones.map((m) => fromMilestone(m, project.slug)),
       ...node.tasks.map((t) => fromTask(t, project.slug)),
@@ -144,7 +149,11 @@ function fromProject(node: ProjectNode): TreeItem {
   };
 }
 
-export const buildItems = (tree: Tree): TreeItem[] => tree.projects.map(fromProject);
+/** Future projects come last. */
+export function buildItems(tree: Tree): TreeItem[] {
+  const items = tree.projects.map(fromProject);
+  return [...items.filter((item) => !item.future), ...items.filter((item) => item.future)];
+}
 
 // --- looking around ----------------------------------------------------------
 
@@ -236,7 +245,13 @@ export interface Row {
   match: boolean;
   position: number;
   siblings: number;
+  /** The first future project of the screen carries their number: a heading goes above it. */
+  futureGroup: number | null;
 }
+
+/** For assistive technology: the header and the heading of future projects are rows too. */
+export const rowCount = (rows: Row[]): number =>
+  rows.length + 1 + Number(rows.some((row) => row.futureGroup !== null));
 
 export interface Unfolded {
   /** Opened by hand, remembered between visits. */
@@ -260,6 +275,7 @@ export function visibleRows(items: TreeItem[], filter: Filter, unfolded: Unfolde
     const shown = list.filter(
       (item) => allowed(item) && (!filtering || wholeBranch || matches(item) || matchBelow(item)),
     );
+    const firstFuture = shown.findIndex((item) => item.future);
     shown.forEach((item, index) => {
       const own = matches(item);
       const below = filtering && matchBelow(item);
@@ -277,6 +293,7 @@ export function visibleRows(items: TreeItem[], filter: Filter, unfolded: Unfolde
         match: !filtering || own,
         position: index + 1,
         siblings: shown.length,
+        futureGroup: index === firstFuture ? shown.length - firstFuture : null,
       });
       if (open && hasChildren) add(children, depth + 1, whole);
     });

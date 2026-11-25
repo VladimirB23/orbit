@@ -13,6 +13,7 @@ SELECT
     due_date,
     local_day(created_at) AS created_date,
     CASE WHEN status = 'done' THEN local_day(done_at) END AS done_date,
-    archived_at IS NOT NULL AS is_archived
+    archived_at IS NOT NULL AS is_archived,
+    id IN (SELECT project_id FROM future_projects) AS is_future
 FROM projects
 ORDER BY id

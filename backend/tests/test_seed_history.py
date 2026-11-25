@@ -126,7 +126,7 @@ def test_the_same_day_gives_the_same_history(tmp_path: Path, history: Orbit) -> 
 
 def test_there_are_no_real_paths_or_names(history: Orbit) -> None:
     for project in history.session.scalars(select(Project)):
-        assert project.repo_path is None
+        assert project.repo_path in (None, f"D:\\Projects\\{project.slug}")
         assert project.obsidian_path is None
     assert all(s.folder is None for s in history.sessions())
 

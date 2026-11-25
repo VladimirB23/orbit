@@ -40,6 +40,7 @@ shares AS (
     SELECT
         p.id, p.slug, p.name, p.status, p.priority, p.position,
         p.archived_at IS NOT NULL AS archived,
+        f.project_id IS NOT NULL  AS future,
         COALESCE(a.sessions, 0) AS sessions,
         COALESCE(a.prompts, 0)  AS prompts,
         COALESCE(a.commits, 0)  AS commits,
@@ -55,6 +56,7 @@ shares AS (
     LEFT JOIN amounts    AS a ON a.project_id = p.id
     LEFT JOIN statuses   AS s ON s.project_id = p.id
     LEFT JOIN last_moves AS l ON l.project_id = p.id
+    LEFT JOIN future_projects AS f ON f.project_id = p.id
 )
 SELECT *
 FROM shares

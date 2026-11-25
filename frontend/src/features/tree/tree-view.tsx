@@ -3,11 +3,12 @@ import { Fragment, useRef } from 'react';
 import type { Meta } from '@/api/types';
 import { type Column, treeLayout } from '@/lib/columns';
 import type { Day } from '@/lib/dates';
-import type { Row, TreeItem } from '@/lib/tree';
+import { type Row, rowCount, type TreeItem } from '@/lib/tree';
 import { cn } from '@/lib/utils';
 import { type Columns, ColumnsMenu, Resizer, useWidth, widthOfNames } from './columns';
 import { focusRow } from './focus';
 import { QuickAdd } from './quick-add';
+import { FutureHeading } from './row-parts';
 import { TreeRow } from './tree-row';
 import type { RowActions } from './types';
 import { addingPlace, type TreeUi, useRowKeys } from './use-row-keys';
@@ -38,7 +39,7 @@ export function TreeView(props: Props) {
         role="treegrid"
         tabIndex={-1}
         aria-label="Проекты, этапы и задачи"
-        aria-rowcount={rows.length + 1}
+        aria-rowcount={rowCount(rows)}
         onKeyDown={onKeyDown}
         className="outline-none"
         style={{ '--fields': layout.template, minWidth: layout.minWidth } as React.CSSProperties}
@@ -86,6 +87,9 @@ export function TreeView(props: Props) {
         </div>
         {rows.map((row, index) => (
           <Fragment key={row.item.key}>
+            {row.futureGroup !== null && (
+              <FutureHeading count={row.futureGroup} hint className="px-3 pl-11" />
+            )}
             <TreeRow
               row={row}
               columns={layout.columns}

@@ -26,3 +26,5 @@ class SessionImport:
     unchanged: int = 0
     # Sessions of folders that are not projects in orbit: slug -> how many.
     unknown_projects: dict[str, int] = field(default_factory=dict)
+    # Future projects that have got a folder: their first session was in it.
+    started: list[str] = field(default_factory=list)

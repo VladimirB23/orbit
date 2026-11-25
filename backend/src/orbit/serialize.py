@@ -55,6 +55,7 @@ def project_node(node: ProjectNode) -> dict[str, Any]:
         "actual": actual(node.actual),
         "signals": asdict(node.signals),
         "focus": asdict(node.focus) if node.focus else None,
+        "future": node.future,
         "milestones": [milestone_node(m) for m in node.milestones],
         "tasks": [task_node(t) for t in node.tasks],
     }

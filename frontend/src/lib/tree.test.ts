@@ -67,6 +67,51 @@ describe('buildItems', () => {
   });
 });
 
+describe('future projects', () => {
+  const mixed = buildItems(
+    tree([
+      project(1, { slug: 'idea', name: 'Idea', future: true, tasks: [task(1, { title: 'Why' })] }),
+      project(2, { slug: 'real', name: 'Real' }),
+      project(3, { slug: 'later', name: 'Later', future: true }),
+      project(4, { slug: 'also', name: 'Also real' }),
+    ]),
+  );
+  const rows = (filter: Filter = EMPTY_FILTER, expanded = none) =>
+    visibleRows(mixed, filter, { expanded, toggled: none });
+
+  it('come after the ordinary ones, each group in its own order', () => {
+    expect(rows().map((r) => r.item.title)).toEqual(['Real', 'Also real', 'Idea', 'Later']);
+  });
+
+  it('the first of them begins the group and knows how many there are', () => {
+    expect(rows().map((r) => r.futureGroup)).toEqual([null, null, 2, null]);
+  });
+
+  it('only a project row begins it', () => {
+    const open = rows(EMPTY_FILTER, keys('project-1'));
+    expect(open.map((r) => [r.item.title, r.futureGroup])).toEqual([
+      ['Real', null],
+      ['Also real', null],
+      ['Idea', 2],
+      ['Why', null],
+      ['Later', null],
+    ]);
+  });
+
+  it('a filter counts what it shows', () => {
+    expect(rows(only({ q: 'later' })).map((r) => r.futureGroup)).toEqual([1]);
+  });
+
+  it('position among siblings follows the order on the screen', () => {
+    expect(rows().map((r) => [r.position, r.siblings])).toEqual([
+      [1, 4],
+      [2, 4],
+      [3, 4],
+      [4, 4],
+    ]);
+  });
+});
+
 describe('without filters', () => {
   it('shows only projects until something is expanded', () => {
     expect(titles(EMPTY_FILTER)).toEqual(['Orbit', 'Атлас и компас']);

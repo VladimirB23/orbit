@@ -164,6 +164,30 @@ export function TitleCell({ row, limits, tab, editing, actions, overlay }: Title
   );
 }
 
+const FUTURE_HINT =
+  'пока только обсуждаем; появится папка - поднимется к остальным вместе с историей';
+
+/** Between ordinary projects and the ones that are only talked about. */
+export function FutureHeading(props: { count: number; hint?: boolean; className?: string }) {
+  const { count, hint = false, className } = props;
+  return (
+    <div
+      role="row"
+      title={hint ? undefined : FUTURE_HINT}
+      className="border-border border-t bg-raised"
+    >
+      <div
+        role="gridcell"
+        className={cn('flex min-h-9 flex-wrap items-baseline gap-x-2 py-1.5 text-sm', className)}
+      >
+        <span className="font-semibold">Будущие проекты</span>
+        <span className="text-muted-foreground">{count}</span>
+        {hint && <span className="text-muted-foreground">{FUTURE_HINT}</span>}
+      </div>
+    </div>
+  );
+}
+
 interface MenuProps {
   item: TreeItem;
   tab: number;

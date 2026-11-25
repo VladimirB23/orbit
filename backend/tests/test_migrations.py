@@ -153,3 +153,26 @@ def test_projects_survive_the_upgrade_to_commits(db_file: Path) -> None:
     with pytest.raises(IntegrityError), engine.begin() as conn:
         conn.execute(insert)  # one commit of a project is counted once
     engine.dispose()
+
+
+def test_sessions_survive_the_upgrade_to_topics(db_file: Path) -> None:
+    engine = make_engine(db_file)
+    upgrade(engine, "0004")
+    _insert_project(engine)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO sessions (external_id, project_id, started_at, ended_at, title,"
+                " prompts, files, commits) VALUES ('a', 1, :now, :now, 'T', 3, 2, 1)"
+            ),
+            {"now": NOW},
+        )
+    upgrade(engine)
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT title, prompts, topic_id FROM sessions")).all()
+        indexes = {i["name"] for i in inspect(engine).get_indexes("sessions")}
+    assert [tuple(row) for row in rows] == [("T", 3, None)]
+    assert indexes >= {"ix_sessions_project_id", "ix_sessions_started_at", "ix_sessions_topic_id"}
+    with pytest.raises(IntegrityError), engine.begin() as conn:
+        conn.execute(text("UPDATE sessions SET topic_id = 999"))
+    engine.dispose()

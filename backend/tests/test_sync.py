@@ -217,3 +217,40 @@ def test_db_info_shows_the_vault(run: Any, vault: Path) -> None:
     info = as_json(run("db", "info", "--json"))
     assert info["vault"] == str(vault)
     assert info["sessions"] == 0
+
+
+def test_about_command_says_what_a_session_was_about(run: Any) -> None:
+    run("project", "add", "orbit", "--name", "Orbit")
+    run("project", "add", "bot", "--name", "Bot")
+    run("session", "import")
+    row = as_json(run("session", "about", ID_A[:8], "bot", "--json"))
+    assert (row["project"], row["about"]) == ("orbit", "bot")
+    assert [s["title"] for s in as_json(run("session", "list", "bot", "--json"))] == [row["title"]]
+    assert "about bot" in run("session", "list").output
+    assert as_json(run("session", "about", ID_A, "none", "--json"))["about"] is None
+
+
+def test_import_names_the_projects_that_have_begun(run: Any) -> None:
+    run("project", "add", "orbit", "--name", "Orbit")
+    result = run("session", "import")
+    assert "orbit: its folder is known now" in result.output
+    assert as_json(run("project", "show", "orbit", "--json"))["repo_path"] == r"D:\Projects\orbit"
+
+
+def test_the_screen_can_say_it_too(client: TestClient) -> None:
+    wait_for_sessions(client)
+    client.post("/api/v1/projects", json={"slug": "bot", "name": "Bot"})
+    url = f"/api/v1/sessions/{ID_A}"
+    row = client.patch(url, json={"topic": "bot"}).json()
+    assert row["topic_id"] is not None
+    assert client.get("/api/v1/sessions?project=bot").json() == [row]
+    assert client.patch(url, json={"topic": None}).json()["topic_id"] is None
+    assert client.patch(url, json={"topic": "nope"}).status_code == 404
+    assert client.patch("/api/v1/sessions/ffffffff", json={"topic": "bot"}).status_code == 404
+
+
+def test_the_tree_marks_future_projects(client: TestClient) -> None:
+    wait_for_sessions(client)
+    client.post("/api/v1/projects", json={"slug": "bot", "name": "Bot"})
+    nodes = client.get("/api/v1/tree").json()["projects"]
+    assert {n["project"]["slug"]: n["future"] for n in nodes} == {"orbit": False, "bot": True}

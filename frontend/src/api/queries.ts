@@ -234,6 +234,22 @@ export function useAddMutation() {
   });
 }
 
+/** What a session was about; null: the project it ran in. */
+export function useTopicMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    scope: CHANGES,
+    mutationFn: ({ id, topic }: { id: string; topic: string | null }) =>
+      unwrap(
+        client.PATCH('/api/v1/sessions/{external_id}', {
+          params: { path: { external_id: id } },
+          body: { topic },
+        }),
+      ),
+    onSettled: () => refreshData(qc),
+  });
+}
+
 export function useUndoMutation() {
   const qc = useQueryClient();
   return useMutation({

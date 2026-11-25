@@ -613,6 +613,12 @@ def set_(
 # --- sessions -----------------------------------------------------------------
 
 
+def session_payload(o: Orbit, row: WorkSession) -> dict[str, Any]:
+    slugs = {p.id: p.slug for p in o.list_projects(include_archived=True)}
+    about = None if row.topic_id is None else slugs[row.topic_id]
+    return serialize.row(row) | {"project": slugs[row.project_id], "about": about}
+
+
 @session_app.command("import")
 def session_import(ctx: typer.Context, json_out: JsonOpt = False) -> None:
     """Read session journals from the Obsidian vault (orbit serve also does it itself)."""
@@ -644,13 +650,25 @@ def session_list(
     """Claude sessions, newest first."""
 
     def action(o: Orbit) -> list[dict[str, Any]]:
-        slugs = {p.id: p.slug for p in o.list_projects(include_archived=True)}
-        return [
-            serialize.row(s) | {"project": slugs[s.project_id]}
-            for s in o.sessions(project, limit=limit)
-        ]
+        return [session_payload(o, s) for s in o.sessions(project, limit=limit)]
 
     execute(ctx, json_out, action, render.sessions)
+
+
+@session_app.command("about")
+def session_about(
+    ctx: typer.Context,
+    session_id: Annotated[str, typer.Argument(help="Id of a session or its beginning.")],
+    project: Annotated[str, typer.Argument(help="Project slug; 'none' takes it back.")],
+    json_out: JsonOpt = False,
+) -> None:
+    """Say what a session was about, e.g. a future project talked over in another folder."""
+
+    def action(o: Orbit) -> dict[str, Any]:
+        topic = None if project.strip().lower() == "none" else project
+        return session_payload(o, o.set_session_topic(session_id, topic))
+
+    execute(ctx, json_out, action, lambda row: render.sessions([row]))
 
 
 # --- commits ------------------------------------------------------------------

@@ -375,6 +375,95 @@
         }
       }
     },
+    "/api/v1/sessions/{external_id}": {
+      "patch": {
+        "summary": "Update Session",
+        "operationId": "update_session_api_v1_sessions__external_id__patch",
+        "parameters": [
+          {
+            "name": "external_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "External Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionTopic"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/v1/analytics": {
       "get": {
         "summary": "Analytics",
@@ -2070,6 +2159,10 @@
             "type": "boolean",
             "title": "Archived"
           },
+          "future": {
+            "type": "boolean",
+            "title": "Future"
+          },
           "sessions": {
             "type": "integer",
             "title": "Sessions"
@@ -2149,6 +2242,7 @@
           "status",
           "priority",
           "archived",
+          "future",
           "sessions",
           "prompts",
           "commits",
@@ -2749,6 +2843,10 @@
               }
             ]
           },
+          "future": {
+            "type": "boolean",
+            "title": "Future"
+          },
           "signals": {
             "$ref": "#/components/schemas/SignalsOut"
           },
@@ -2775,6 +2873,7 @@
           "upcoming",
           "actual",
           "focus",
+          "future",
           "signals",
           "milestones",
           "tasks"
@@ -3109,6 +3208,17 @@
               }
             ],
             "title": "Folder"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Id"
           }
         },
         "type": "object",
@@ -3122,9 +3232,31 @@
           "prompts",
           "files",
           "commits",
-          "folder"
+          "folder",
+          "topic_id"
         ],
         "title": "SessionOut"
+      },
+      "SessionTopic": {
+        "properties": {
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "SessionTopic"
       },
       "SignalsOut": {
         "properties": {

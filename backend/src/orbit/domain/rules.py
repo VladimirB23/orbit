@@ -60,6 +60,11 @@ def is_upcoming(due_date: date | None, status: Status, today: date, days: int) -
     )
 
 
+def is_future(folder: str | None, status: Status) -> bool:
+    """A project that is only talked about: there is no folder to work in yet."""
+    return folder is None and status not in CLOSED_STATUSES
+
+
 @dataclass(frozen=True)
 class Actual:
     """When work really began and ended; None while unknown or not yet."""
@@ -175,7 +180,8 @@ def attention(share: float, expected: float | None, facts: int) -> Attention:
     if expected is None or facts < FACTS_NEEDED:
         return Attention.UNKNOWN
     if share < expected * 0.5:
-        return Attention.LOW
+        # Less than one session or commit was expected: its absence says nothing.
+        return Attention.LOW if expected * facts >= 1 else Attention.UNKNOWN
     return Attention.HIGH if share >= expected * 1.5 else Attention.FAIR
 
 

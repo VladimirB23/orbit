@@ -152,6 +152,12 @@ def test_archived_projects_are_there_and_marked(demo: Orbit, out: Path) -> None:
     assert marks["coffee-dashboard"] == "0"
 
 
+def test_future_projects_are_marked(demo: Orbit, out: Path) -> None:
+    export_csv(demo, out, private=False)
+    marks = {r["slug"]: r["is_future"] for r in read(out, "dim_project")}
+    assert [slug for slug, mark in marks.items() if mark == "1"] == ["reading-list"]
+
+
 def test_empty_database_gives_headers(orbit: Orbit, out: Path) -> None:
     counts = export_csv(orbit, out, private=True)
     assert counts["fact_task"] == 0

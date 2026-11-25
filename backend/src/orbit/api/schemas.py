@@ -114,6 +114,7 @@ class ProjectNodeOut(Out):
     upcoming: bool
     actual: ActualOut
     focus: FocusOut | None
+    future: bool  # only talked about, no folder yet
     signals: SignalsOut
     milestones: list[MilestoneNodeOut]
     tasks: list[TaskNodeOut]
@@ -158,6 +159,7 @@ class SessionOut(Out):
     files: int
     commits: int
     folder: str | None
+    topic_id: int | None  # the project it was about, when not the one it ran in
 
 
 class MeasureOut(Out):
@@ -180,6 +182,7 @@ class FocusRowOut(Out):
     status: Status
     priority: int
     archived: bool
+    future: bool
     sessions: int
     prompts: int
     commits: int
@@ -338,6 +341,10 @@ class TaskCreate(In):
     start_date: date | None = None
     due_date: date | None = None
     comment: str | None = None
+
+
+class SessionTopic(In):
+    topic: str | None  # slug of a project; null: it was about the one it ran in
 
 
 class Patch(In):

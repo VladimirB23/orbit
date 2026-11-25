@@ -4,13 +4,14 @@ import type { Meta } from '@/api/types';
 import { type Columns, Resizer, useWidth, widthOfNames } from '@/features/tree/columns';
 import { focusRow } from '@/features/tree/focus';
 import { QuickAdd } from '@/features/tree/quick-add';
+import { FutureHeading } from '@/features/tree/row-parts';
 import type { RowActions } from '@/features/tree/types';
 import { addingPlace, type TreeUi, useRowKeys } from '@/features/tree/use-row-keys';
 import { timelineLayout } from '@/lib/columns';
 import { type Day, dayDiff } from '@/lib/dates';
 import { hotkey, undoKey } from '@/lib/hotkeys';
 import { makeScale, spanOf, ticks, ZOOMS, type Zoom } from '@/lib/timeline';
-import { findItem, type Row, type TreeItem, walk } from '@/lib/tree';
+import { findItem, type Row, rowCount, type TreeItem, walk } from '@/lib/tree';
 import { extent } from './bar';
 import { Floating, type Hover } from './floating';
 import { ScaleHeader } from './scale-header';
@@ -190,7 +191,7 @@ export function TimelineView(props: Props) {
           role="treegrid"
           tabIndex={-1}
           aria-label="Проекты, этапы и задачи на шкале времени"
-          aria-rowcount={rows.length + 1}
+          aria-rowcount={rowCount(rows)}
           onKeyDown={onKeyDown}
           className="timeline-body relative min-h-full outline-none"
           style={
@@ -244,6 +245,12 @@ export function TimelineView(props: Props) {
           />
           {rows.map((row, index) => (
             <Fragment key={row.item.key}>
+              {row.futureGroup !== null && (
+                <FutureHeading
+                  count={row.futureGroup}
+                  className="sticky left-0 z-10 w-(--names) pr-3 pl-10"
+                />
+              )}
               <TimelineRow
                 row={row}
                 columns={layout.columns}

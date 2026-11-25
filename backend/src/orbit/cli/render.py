@@ -184,12 +184,14 @@ def sessions(rows: list[dict[str, Any]]) -> None:
     if not rows:
         out.print("no sessions")
         return
-    table = Table("started", "project", "title", "prompts", "files", "commits")
+    table = Table("id", "started", "project", "title", "prompts", "files", "commits")
     for s in rows:
+        about = f" [dim]about {s['about']}[/]" if s["about"] else ""
         table.add_row(
+            s["external_id"][:8],
             _local(s["started_at"]),
             s["project"],
-            escape(s["title"]),
+            escape(s["title"]) + about,
             str(s["prompts"]),
             str(s["files"]),
             str(s["commits"]),
@@ -197,7 +199,7 @@ def sessions(rows: list[dict[str, Any]]) -> None:
     out.print(table)
 
 
-ATTENTION_STYLE = {"low": "bold red", "fair": "", "high": "bold yellow", "unknown": "dim"}
+ATTENTION_STYLE = {"low": "bold red", "fair": "default", "high": "bold yellow", "unknown": "dim"}
 
 
 def stats(data: dict[str, Any]) -> None:
@@ -225,7 +227,7 @@ def stats(data: dict[str, Any]) -> None:
             str(row["closed"]),
             _pct(row["share"]),
             _pct(row["expected"]),
-            f"[{style}]{attention}[/]" if style else attention,
+            "[dim]future[/]" if row["future"] else f"[{style}]{attention}[/]",
             str(row["last_day"] or ""),
         )
     out.print(table)
@@ -252,6 +254,8 @@ def commit_import(data: dict[str, Any]) -> None:
 def session_import(data: dict[str, Any]) -> None:
     out = console()
     out.print(f"added {data['added']}, updated {data['updated']}, unchanged {data['unchanged']}")
+    for slug in data["started"]:
+        out.print(f"{escape(slug)}: its folder is known now, no longer a future project")
     for slug, count in data["unknown_projects"].items():
         out.print(f"skipped {count}: no project '{escape(slug)}' in orbit")
     if data["unreadable"]:
@@ -286,6 +290,7 @@ def tree(nodes: list[dict[str, Any]]) -> None:
             _join(
                 f"[bold]{escape(p['name'])}[/] [dim]({p['slug']})[/]",
                 _status(p["status"]),
+                "[dim]future[/]" if node["future"] else "",
                 _pct(node["progress"]),
                 _due(p, node["overdue"]),
                 f"[italic]{escape(p['summary'])}[/]" if p.get("summary") else "",

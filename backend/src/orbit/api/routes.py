@@ -92,6 +92,11 @@ def sessions(
     return [s.SessionOut.model_validate(row) for row in rows]
 
 
+@router.patch("/sessions/{external_id}")
+def update_session(external_id: str, body: s.SessionTopic, orbit: OrbitDep) -> s.SessionOut:
+    return s.SessionOut.model_validate(orbit.set_session_topic(external_id, body.topic))
+
+
 @router.get("/analytics")
 def analytics(
     orbit: OrbitDep,

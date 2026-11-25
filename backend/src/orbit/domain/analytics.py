@@ -10,12 +10,13 @@ from sqlalchemy import RowMapping, text
 
 from orbit.domain.enums import Status
 from orbit.domain.errors import ValidationError
-from orbit.domain.rules import Attention, attention, attention_share
+from orbit.domain.rules import Attention, attention, attention_share, is_future
 from orbit.domain.service import Orbit, ReportItem
 
 type Step = Literal["day", "week", "month"]
 
 VIEWS = (
+    "future_projects",
     "events_in_force",
     "lives",
     "status_changes",
@@ -98,6 +99,7 @@ class FocusRow:
     status: Status
     priority: int
     archived: bool
+    future: bool  # only talked about, no folder yet
     sessions: int
     prompts: int
     commits: int
@@ -308,7 +310,11 @@ def _expected(orbit: Orbit, scope: dict[str, Any], kinds: int) -> dict[str, floa
         orbit, "expected", start=scope["start"], end=scope["end"], today=orbit.clock.today()
     ):
         result[row["slug"]] = result.get(row["slug"], 0.0) + row["expected"] / kinds
-    running = [p.slug for p in orbit.list_projects() if p.status == Status.IN_PROGRESS]
+    running = [
+        p.slug
+        for p in orbit.list_projects()
+        if p.status == Status.IN_PROGRESS and not is_future(p.repo_path, Status(p.status))
+    ]
     return {slug: result.get(slug, 0.0) for slug in running}
 
 
@@ -328,6 +334,7 @@ def _focus(orbit: Orbit, scope: dict[str, Any]) -> list[FocusRow]:
             status=Status(row["status"]),
             priority=row["priority"],
             archived=bool(row["archived"]),
+            future=bool(row["future"]),
             sessions=row["sessions"],
             prompts=row["prompts"],
             commits=row["commits"],

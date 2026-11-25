@@ -164,6 +164,10 @@ class WorkSession(Base):
     files: Mapped[int] = mapped_column(Integer)
     commits: Mapped[int] = mapped_column(Integer)
     folder: Mapped[str | None] = mapped_column(String(500))
+    # The project it was about, when that is not the one it ran in. Never touched by an import.
+    topic_id: Mapped[int | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="SET NULL"), index=True
+    )
 
 
 class Commit(Base):

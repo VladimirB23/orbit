@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function FocusChart({ rows, today, className, onOpen }: Props) {
-  const { shown, silent } = splitFocus(rows);
+  const { shown, silent, future } = splitFocus(rows);
   const top = Math.max(...shown.flatMap((row) => [row.share, row.expected ?? 0]), 0.01);
   const most = (pick: (row: FocusRow) => number) => Math.max(...shown.map(pick), 1);
   const sessions = most((row) => row.sessions);
@@ -40,6 +40,10 @@ export function FocusChart({ rows, today, className, onOpen }: Props) {
             начались и еще идут. Проект трех недель не отвечает за три месяца. Без приоритета
             считается как низкий, коммитов ждем только от проектов с кодом. Меньше половины ожидания
             - мало внимания.
+          </p>
+          <p>
+            Будущий проект (папки еще нет) внимания не ждет. Сессия считается один раз: у проекта, о
+            котором она была, а не у того, где шла.
           </p>
           <p>
             Движение: последняя сессия, коммит или смена статуса. Правка сроков и текста движением
@@ -92,6 +96,11 @@ export function FocusChart({ rows, today, className, onOpen }: Props) {
           Без активности и не в работе, {silent.length}{' '}
           {plural(silent.length, 'проект', 'проекта', 'проектов')}:{' '}
           {silent.map((row) => row.name).join(', ')}
+        </Note>
+      )}
+      {future.length > 0 && (
+        <Note>
+          Будущие проекты, внимания пока не ждут: {future.map((row) => row.name).join(', ')}
         </Note>
       )}
     </Card>
@@ -154,6 +163,9 @@ function Row({ row, today, scale, onOpen }: RowProps) {
               ждали {percent(row.expected ?? 0)}
             </span>
           </span>
+        )}
+        {row.future && (
+          <span className="mt-0.5 block text-muted-foreground text-xs">будущий проект</span>
         )}
         {!low && row.expected !== null && (
           <span className="sr-only">ждали {percent(row.expected)}</span>

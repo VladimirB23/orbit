@@ -78,6 +78,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/{external_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Session */
+        patch: operations["update_session_api_v1_sessions__external_id__patch"];
+        trace?: never;
+    };
     "/api/v1/analytics": {
         parameters: {
             query?: never;
@@ -495,6 +512,8 @@ export interface components {
             priority: number;
             /** Archived */
             archived: boolean;
+            /** Future */
+            future: boolean;
             /** Sessions */
             sessions: number;
             /** Prompts */
@@ -704,6 +723,8 @@ export interface components {
             upcoming: boolean;
             actual: components["schemas"]["ActualOut"];
             focus: components["schemas"]["FocusOut"] | null;
+            /** Future */
+            future: boolean;
             signals: components["schemas"]["SignalsOut"];
             /** Milestones */
             milestones: components["schemas"]["MilestoneNodeOut"][];
@@ -802,6 +823,13 @@ export interface components {
             commits: number;
             /** Folder */
             folder: string | null;
+            /** Topic Id */
+            topic_id: number | null;
+        };
+        /** SessionTopic */
+        SessionTopic: {
+            /** Topic */
+            topic: string | null;
         };
         /** SignalsOut */
         SignalsOut: {
@@ -1176,6 +1204,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    update_session_api_v1_sessions__external_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                external_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionTopic"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
                 };
             };
             /** @description Forbidden */

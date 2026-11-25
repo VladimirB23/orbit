@@ -306,6 +306,7 @@ def _project(story: _Story, plan: Plan, vlad: Orbit, claude: Orbit) -> None:
             priority=plan.priority,
             start_date=story.day(begin),
             due_date=None if plan.due is None else story.day(DAYS + plan.due),
+            repo_path=f"D:\\Projects\\{plan.slug}",
         ),
     )
     story.at(begin, 10, lambda: vlad.update_project(plan.slug, status=S.IN_PROGRESS))

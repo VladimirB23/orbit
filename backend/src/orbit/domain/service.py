@@ -10,6 +10,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
+from pathlib import PureWindowsPath
 from typing import Any
 from uuid import uuid4
 
@@ -38,6 +39,7 @@ from orbit.domain.rules import (
     canceled_out,
     default_due,
     earliest_sign,
+    is_future,
     is_overdue,
     is_promise,
     is_upcoming,
@@ -55,6 +57,7 @@ SLUG_MAX = 64
 NAME_MAX = 200
 TITLE_MAX = 300
 UPCOMING_DAYS = 7
+SESSION_ID_MIN = 4  # characters of an id that a person has to type
 
 PROJECT_FIELDS = frozenset(
     {
@@ -253,9 +256,24 @@ class ProjectNode:
     upcoming: bool
     actual: Actual
     focus: Focus | None
+    future: bool
     signals: Signals = field(default_factory=Signals)
     milestones: list[MilestoneNode] = field(default_factory=list)
     tasks: list[TaskNode] = field(default_factory=list)  # tasks without a milestone
+
+
+def _home(folder: str | None, slug: str) -> str | None:
+    """The folder named after the project, when a session ran in it or below it.
+
+    Only on a local drive: opening a network path may send the Windows password hash away.
+    """
+    path = PureWindowsPath(folder or "")
+    if len(path.drive) != 2 or not path.root:
+        return None
+    for place in (path, *path.parents):
+        if place.name.lower() == slug:
+            return place.drive.upper() + str(place)[2:]
+    return None
 
 
 def _task_signals(nodes: Iterable[TaskNode]) -> Signals:
@@ -852,6 +870,7 @@ class Orbit:
                 progress,
                 *flags(Entity.PROJECT, p),
                 focus=_focus(p_milestones, p_tasks),
+                future=is_future(p.repo_path, Status(p.status)),
                 signals=signals,
                 milestones=m_nodes,
                 tasks=loose,
@@ -866,16 +885,49 @@ class Orbit:
     def sessions(
         self, project_slug: str | None = None, limit: int | None = None
     ) -> list[WorkSession]:
-        """Newest first."""
+        """Newest first. Of a project: what ran in it and what was about it."""
         query = select(WorkSession).order_by(WorkSession.started_at.desc(), WorkSession.id.desc())
         if project_slug is not None:
-            query = query.where(WorkSession.project_id == self.get_project(project_slug).id)
+            project_id = self.get_project(project_slug).id
+            query = query.where(
+                or_(WorkSession.project_id == project_id, WorkSession.topic_id == project_id)
+            )
         if limit:
             query = query.limit(limit)
         return list(self.session.scalars(query))
 
+    def get_session(self, external_id: str) -> WorkSession:
+        """By the whole id or by its beginning, as long as there is only one such session."""
+        start = external_id.strip().lower()
+        if len(start) < SESSION_ID_MIN:
+            raise ValidationError(f"give at least {SESSION_ID_MIN} characters of a session id")
+        found = list(
+            self.session.scalars(
+                select(WorkSession).where(
+                    WorkSession.external_id.startswith(start, autoescape=True)
+                )
+            )
+        )
+        if not found:
+            raise NotFoundError(f"session '{external_id}' not found")
+        if len(found) > 1:
+            raise ValidationError(f"{len(found)} sessions begin with '{external_id}'")
+        return found[0]
+
+    def set_session_topic(self, external_id: str, project_slug: str | None) -> WorkSession:
+        """What a session was about, when that is not the project it ran in."""
+        row = self.get_session(external_id)
+        topic = None if project_slug is None else self.get_project(project_slug).id
+        row.topic_id = None if topic == row.project_id else topic
+        self.session.flush()
+        return row
+
     def import_sessions(self, records: Iterable[SessionRecord]) -> SessionImport:
-        """Facts about the past, not edits of the plan: nothing goes to events."""
+        """Facts about the past, not edits of the plan: nothing goes to events.
+
+        Except one thing: the first session in a folder of its own tells where a future
+        project has begun, and that day is worth remembering.
+        """
         result = SessionImport()
         projects = {p.slug: p.id for p in self.list_projects(include_archived=True)}
         known = {row.external_id: row for row in self.session.scalars(select(WorkSession))}
@@ -901,6 +953,8 @@ class Orbit:
                 known[record.external_id] = row
                 self.session.add(row)
                 result.added += 1
+                if self._settle(record):
+                    result.started.append(record.project)
                 continue
             diff = {key: value for key, value in values.items() if getattr(row, key) != value}
             for key, value in diff.items():
@@ -911,6 +965,24 @@ class Orbit:
                 result.unchanged += 1
         self.session.flush()
         return result
+
+    def _settle(self, record: SessionRecord) -> bool:
+        """Fills in the folder of a project that has none, unless a person has taken it away."""
+        project = self.get_project(record.project)
+        folder = _home(record.folder, project.slug)
+        if project.repo_path is not None or folder is None or self._had_folder(project):
+            return False
+        self.update_project(project.slug, repo_path=folder)
+        return True
+
+    def _had_folder(self, project: Project) -> bool:
+        query = select(Event.id).where(
+            Event.entity == Entity.PROJECT,
+            Event.entity_id == project.id,
+            Event.action == Action.UPDATE,
+            Event.field == "repo_path",
+        )
+        return self.session.scalar(query.limit(1)) is not None
 
     # --- commits ----------------------------------------------------------------
 

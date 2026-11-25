@@ -33,7 +33,7 @@ LATER = replace(
 
 @pytest.fixture(autouse=True)
 def _project(orbit: Orbit) -> None:
-    orbit.add_project("orbit", name="Orbit")
+    orbit.add_project("orbit", name="Orbit", repo_path="D:\\Projects\\orbit")
 
 
 def test_import_adds_sessions_to_their_project(orbit: Orbit) -> None:

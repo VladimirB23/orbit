@@ -50,6 +50,7 @@ class Story:
 
     def project(self, slug: str = "a", **fields: Any) -> None:
         fields.setdefault("status", WORK)
+        fields.setdefault("repo_path", f"D:\\Projects\\{slug}")  # without it: a future one
         self.orbit.add_project(slug, name=slug.upper(), **fields)
 
     def task(self, *path: tuple[int, Status], born: Status = BACKLOG, slug: str = "a") -> int:
@@ -337,6 +338,8 @@ def test_the_time_of_finished_projects_is_not_expected_of_the_running(story: Sto
         (0.45, 0.3, 20, Attention.HIGH),
         (0.0, 0.3, 9, Attention.UNKNOWN),  # nine facts are not a pattern
         (0.5, None, 20, Attention.UNKNOWN),  # not in progress: nothing is expected
+        (0.0, 0.004, 200, Attention.UNKNOWN),  # less than one session or commit was expected
+        (0.0, 0.005, 200, Attention.LOW),
     ],
 )
 def test_attention(share: float, expected: float | None, total: int, result: Attention) -> None:

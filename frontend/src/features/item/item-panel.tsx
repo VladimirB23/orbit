@@ -90,6 +90,13 @@ export function ItemPanel(props: Props) {
           onSave={(text) => save({ [titleField(item)]: text })}
         />
 
+        {item.future && (
+          <p className="rounded-md bg-raised px-3 py-2 text-muted-foreground text-sm">
+            Будущий проект: папки еще нет, только обсуждения. Укажи папку ниже или проведи в ней
+            первую сессию, и проект станет обычным. История сохранится.
+          </p>
+        )}
+
         {props.project && <Places project={props.project} />}
 
         <dl className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-y-0.5">
@@ -220,7 +227,7 @@ export function ItemPanel(props: Props) {
           </dl>
         )}
 
-        {project && <Sessions key={project.slug} slug={project.slug} />}
+        {project && <Sessions key={project.slug} project={project} />}
 
         <History entity={item.entity} id={item.id} />
       </div>

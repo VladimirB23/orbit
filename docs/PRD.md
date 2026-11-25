@@ -31,7 +31,7 @@ v0.7 · 2026-11-25 · этапы 1-5 готовы; модель: `docs/adr/0002-
 | `milestones` | id, project_id, name, status, start_date, due_date, summary, position, created_at, updated_at, done_at |
 | `tasks` | id, project_id, milestone_id?, parent_id?, title, status, priority, start_date, due_date, comment (до 280 симв.), position, created_at, updated_at, done_at |
 | `events` | id, at, actor (`vladimir` / `claude` / `system`), entity, entity_id, action (`create` / `update` / `delete`), field, old_value, new_value, batch (действие), undoes (что отменяет) |
-| `sessions` | id, external_id (id сессии Claude), project_id, started_at, ended_at, title, prompts, files, commits (числа), folder — импорт журналов сессий из Obsidian (ADR 0004) |
+| `sessions` | id, external_id (id сессии Claude), project_id, started_at, ended_at, title, prompts, files, commits (числа), folder, topic_id (о каком проекте, если шла в другом) — импорт журналов сессий из Obsidian (ADR 0004, 0010) |
 | `commits` | id, project_id, sha, committed_at — из git папки проекта (ADR 0007) |
 
 - **Статусы** (одни для всех уровней): `backlog` → `planned` → `in_progress` → `paused` / `blocked` → `done` / `canceled`.

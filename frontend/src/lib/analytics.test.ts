@@ -156,6 +156,25 @@ describe('focus', () => {
     expect(silent.map((r) => r.slug)).toEqual(['d', 'e']);
   });
 
+  it('a future project is in the table only when something was going on about it', () => {
+    const rows = [
+      focusRow({ slug: 'real', status: 'in_progress' }),
+      focusRow({ slug: 'talked', status: 'backlog', future: true, sessions: 2 }),
+      focusRow({ slug: 'waiting', status: 'in_progress', future: true }),
+      focusRow({ slug: 'idea', status: 'backlog', future: true }),
+      focusRow({ slug: 'paused', status: 'paused' }),
+    ];
+    const { shown, silent, future } = splitFocus(rows);
+    expect(shown.map((r) => r.slug)).toEqual(['real', 'talked']);
+    expect(silent.map((r) => r.slug)).toEqual(['paused']);
+    expect(future.map((r) => r.slug)).toEqual(['waiting', 'idea']);
+  });
+
+  it('a future project that stands still is not a problem', () => {
+    const row = focusRow({ status: 'in_progress', future: true, last_day: '2026-10-01' });
+    expect(quietText(row, TODAY).late).toBe(false);
+  });
+
   it('a filter by project shows it even when it is silent', () => {
     expect(splitFocus([focusRow({ slug: 'd', status: 'backlog' })]).shown).toHaveLength(1);
   });

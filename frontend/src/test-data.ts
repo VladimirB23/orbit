@@ -100,8 +100,10 @@ export function project(
     overdue = false,
     upcoming = false,
     actual = ACTUAL,
+    future = false,
     ...row
-  }: Partial<ProjectOut> & Flags & { milestones?: MilestoneNode[]; tasks?: TaskNode[] },
+  }: Partial<ProjectOut> &
+    Flags & { future?: boolean; milestones?: MilestoneNode[]; tasks?: TaskNode[] },
 ): ProjectNode {
   for (const m of milestones) {
     m.milestone.project_id = id;
@@ -129,6 +131,7 @@ export function project(
     actual,
     progress: 0,
     focus: null,
+    future,
     signals: SIGNALS,
     milestones,
     tasks,
@@ -147,6 +150,7 @@ export function focusRow(row: Partial<FocusRow>): FocusRow {
     status: 'in_progress',
     priority: 0,
     archived: false,
+    future: false,
     sessions: 0,
     prompts: 0,
     commits: 0,

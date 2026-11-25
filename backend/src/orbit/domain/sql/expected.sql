@@ -2,7 +2,8 @@
 -- under way on that day, in proportion to priority; then the days are added up.
 --
 -- Day by day, because a project of three weeks must not look neglected over three months, and
--- time spent on finished projects must not be asked of the running ones.
+-- time spent on finished projects must not be asked of the running ones. Nothing is asked of a
+-- future project: it is only talked about.
 -- SUM(weight) OVER (PARTITION BY day, kind) is the total of a group next to every row of it.
 WITH signs AS (                                    -- days that prove work on a project
     SELECT project_id, day FROM activity_facts WHERE kind IN ('session', 'commit')
@@ -18,6 +19,7 @@ spans AS (
         EXISTS (SELECT 1 FROM commits AS c WHERE c.project_id = p.id) AS has_code
     FROM projects AS p
     JOIN signs AS s ON s.project_id = p.id
+    WHERE p.id NOT IN (SELECT project_id FROM future_projects)
     GROUP BY p.id
 ),
 days AS (

@@ -11,7 +11,9 @@ export function Tiles({ data }: { data: Analytics }) {
   const sum = (pick: 'sessions' | 'commits') =>
     data.steps.map((_, i) => data.activity.reduce((n, row) => n + (row[pick][i] ?? 0), 0));
 
-  const working = splitFocus(focus).shown.filter((row) => row.status === 'in_progress');
+  const working = splitFocus(focus).shown.filter(
+    (row) => row.status === 'in_progress' && !row.future,
+  );
   const touched = working.filter((row) => row.sessions + row.commits + row.closed > 0);
   const low = working.filter((row) => row.attention === 'low').map((row) => row.name);
   const late = deadlines.filter((item) => item.days < 0);

@@ -59,6 +59,7 @@ orbit log [--since 7d|12h|2w|YYYY-MM-DD] [--entity task --id 12] [--limit 50]
 orbit undo | redo                            # last action of the same actor (12 hours)
 orbit session import                         # journals of the vault -> sessions (orbit serve does it itself)
 orbit session list [project] [--limit 20]    # Claude sessions, newest first
+orbit session about <id> <slug|none>         # what it was about (a future project talked over elsewhere)
 orbit commit import                          # commits from git of project folders (serve does it itself)
 orbit stats [project] [--days 30]            # attention: sessions, commits, closed, share against priority
 orbit export --csv out/tableau               # star of CSV for Tableau + DICTIONARY.md; real data is labelled
@@ -86,6 +87,8 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Что и где рисует таймлайн, решает `frontend/src/lib/timeline.ts` (тесты рядом); факт работы (`actual`) считает домен по `events`.
 - Метрика = файл в `domain/sql/` с комментарием, тест в `test_analytics.py`, определение в `docs/metrics.md`. Новая мера - строки в `activity_facts.sql`. Мало данных - график говорит, чего не хватает. Отмененное (`events.undoes`) в метрики не попадает.
 - Сроки Claude ставит сам, если они есть в разговоре (с источником); даты владельца не трогает, закрытому срок не ставит. Остальное ставит домен (`auto_dates`, ADR 0008).
+- Проект без папки - будущий (ADR 0010): завел папку - `orbit set project <slug> --repo`, история остается. Общую
+  сессию про него пометь `orbit session about`.
 - Публиковать (Tableau Public, скриншоты, README) можно только данные из `demo*.db`.
 - Новая ссылка наружу: путь проверяется в `frontend/src/lib/links.ts`, сетевые пути и чужие схемы не ссылки.
 - Сервер слушает только `127.0.0.1`; открыть наружу можно только с токенами и новым ADR.

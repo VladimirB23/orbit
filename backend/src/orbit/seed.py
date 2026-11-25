@@ -186,6 +186,7 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
         status=S.IN_PROGRESS,
         priority=1,
         summary="Bank CSV import and monthly categories",
+        repo_path="D:\\Projects\\home-budget",
     )
     m_import = claude.add_milestone(
         "home-budget", "Bank CSV import", status=S.IN_PROGRESS, due_date=d(-5)
@@ -200,7 +201,7 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
     vlad.update_milestone(m_import.id, status=S.PAUSED)
     vlad.update_project("home-budget", status=S.PAUSED, summary="Paused until the dashboard ships")
 
-    # --- Reading List: backlog idea with a subtask ------------------------------
+    # --- Reading List: a future project, only an idea so far --------------------
     clock.at(7, 23)
     vlad.add_project(
         "reading-list", name="Reading List", summary="Track books and notes, maybe a Telegram bot"
@@ -218,6 +219,7 @@ def seed_demo(session: Session, today: date) -> dict[str, int]:
         start_date=d(-28),
         due_date=d(-8),
         summary="Static site with project cards",
+        repo_path="D:\\Projects\\portfolio-site",
     )
     m_launch = claude.add_milestone("portfolio-site", "Launch", status=S.IN_PROGRESS)
     cards = claude.add_task("portfolio-site", "Project cards", milestone_id=m_launch.id)

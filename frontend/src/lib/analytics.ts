@@ -162,19 +162,32 @@ export function planTitle({ compared, needed, late }: Plan): string {
 
 export const QUIET_DAYS = 7;
 
+export interface FocusGroups {
+  shown: FocusRow[];
+  silent: FocusRow[];
+  /** Future projects nothing was going on about. */
+  future: FocusRow[];
+}
+
 /** An idea nobody touches is not a problem: it only takes space in the table. */
-export function splitFocus(rows: FocusRow[]): { shown: FocusRow[]; silent: FocusRow[] } {
+export function splitFocus(rows: FocusRow[]): FocusGroups {
   const alive = (row: FocusRow) =>
     rows.length === 1 ||
-    row.status === 'in_progress' ||
+    (row.status === 'in_progress' && !row.future) ||
     row.sessions + row.commits + row.closed > 0;
-  return { shown: rows.filter(alive), silent: rows.filter((row) => !alive(row)) };
+  const rest = rows.filter((row) => !alive(row));
+  return {
+    shown: rows.filter(alive),
+    silent: rest.filter((row) => !row.future),
+    future: rest.filter((row) => row.future),
+  };
 }
 
 export function quietText(row: FocusRow, today: Day): { text: string; late: boolean } {
   if (row.last_day === null) return { text: 'не начат', late: false };
   const days = dayDiff(today, row.last_day);
-  return { text: inDays(-days), late: row.status === 'in_progress' && days >= QUIET_DAYS };
+  const working = row.status === 'in_progress' && !row.future;
+  return { text: inDays(-days), late: working && days >= QUIET_DAYS };
 }
 
 // --- time --------------------------------------------------------------------
