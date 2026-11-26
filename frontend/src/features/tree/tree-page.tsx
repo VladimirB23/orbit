@@ -15,6 +15,7 @@ import { DEFAULT_COLUMNS, parseColumns } from '@/lib/columns';
 import { toDay } from '@/lib/dates';
 import { openExternal } from '@/lib/external';
 import { asBoolean, asStrings, usePersisted } from '@/lib/persisted';
+import { parseSort, type Sort, sortItems } from '@/lib/sort';
 import { isClosed } from '@/lib/status';
 import { isZoom, type Zoom } from '@/lib/timeline';
 import {
@@ -32,6 +33,7 @@ import {
 import type { TreeSearch } from '@/router';
 import type { Columns } from './columns';
 import { focusRow, focusRowSoon } from './focus';
+import { type Sorting, SortMenu } from './sort';
 import { FilterMenu, SearchField, SummaryBar } from './toolbar';
 import { TreeView } from './tree-view';
 import type { RowActions } from './types';
@@ -62,6 +64,8 @@ export function TreePage() {
   const expanded = useMemo(() => new Set(expandedList as NodeKey[]), [expandedList]);
   const [toggled, setToggled] = useState(NO_TOGGLES);
   const [zoom, setZoom] = usePersisted<Zoom>('orbit.zoom', 'weeks', asZoom);
+  const [sort, setSort] = usePersisted<Sort | null>('orbit.sort', null, parseSort);
+  const sorting: Sorting = { sort, onSort: (next) => setSort(() => next) };
   const onTimeline = search.screen === 'timeline';
   const onAnalytics = search.screen === 'analytics';
   const [treeFields, setTreeFields] = usePersisted('orbit.fields', DEFAULT_COLUMNS, parseColumns);
@@ -85,13 +89,14 @@ export function TreePage() {
     [search, hideClosed],
   );
 
-  const items = useMemo(() => tree.data && buildItems(tree.data), [tree.data]);
+  const built = useMemo(() => tree.data && buildItems(tree.data), [tree.data]);
+  const items = useMemo(() => built && sortItems(built, sort), [built, sort]);
   const counts = useMemo(() => countViews(items ?? []), [items]);
   const rows = useMemo(
     () => visibleRows(items ?? [], filter, { expanded, toggled }),
     [items, filter, expanded, toggled],
   );
-  const flashing = useFlash(items);
+  const flashing = useFlash(built);
 
   const setSearch = useCallback(
     (patch: Partial<TreeSearch>, replace = true) =>
@@ -289,6 +294,7 @@ export function TreePage() {
             <SummaryBar filter={filter} counts={counts} onFilter={setFilter} />
             <div className="flex min-w-64 flex-1 items-center justify-end gap-2">
               <SearchField value={filter.q} onChange={setQuery} />
+              <SortMenu {...sorting} />
               <FilterMenu
                 filter={filter}
                 archived={archived}
@@ -319,7 +325,7 @@ export function TreePage() {
             onZoom={(next) => setZoom(() => next)}
           />
         ) : (
-          <TreeView {...view} />
+          <TreeView {...view} sorting={sorting} />
         )}
       </main>
       {selectedItem && project && (

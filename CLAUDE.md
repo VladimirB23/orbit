@@ -29,9 +29,9 @@
 
 ```sh
 uv sync                                  # environment
-uv run pytest                            # tests
+uv run python -m pytest                  # tests (python -m: Smart App Control may block .exe launchers)
 uv run ruff check . ; uv run ruff format .
-uv run mypy                              # strict type check
+uv run python -m mypy                    # strict type check
 uv run alembic revision --autogenerate -m "..."   # new migration (then review it!)
 ```
 
@@ -88,7 +88,7 @@ orbit --db path/to.db ...                    # other database (or ORBIT_DB)
 - Доменная логика (статусы, прогресс, `events`) — сначала тест, потом код.
 - Любое изменение схемы — миграция Alembic плюс тест.
 - Изменил API: `npm run gen:api`, иначе упадет `test_contract.py`. Формат ответов `/api/v1` не ломать.
-- Новое поле строки: строка в `frontend/src/lib/columns.ts` и ветка в `features/tree/cells.tsx`. Один экземпляр `Orbit` = одно действие для отмены.
+- Новое поле строки: строка в `frontend/src/lib/columns.ts` и ветка в `features/tree/cells.tsx`; если по нему сортируют - ключ в `lib/sort.ts`. Один экземпляр `Orbit` = одно действие для отмены.
 - Что и где рисует таймлайн, решает `frontend/src/lib/timeline.ts` (тесты рядом); факт работы (`actual`) считает домен по `events`.
 - Метрика = файл в `domain/sql/` с комментарием, тест в `test_analytics.py`, определение в `docs/metrics.md`. Новая мера - строки в `activity_facts.sql`. Мало данных - график говорит, чего не хватает. Отмененное (`events.undoes`) в метрики не попадает.
 - Сроки Claude ставит сам, если они есть в разговоре (с источником); даты, поставленные человеком, не трогает, закрытому срок не ставит. Остальное ставит домен (`auto_dates`, ADR 0008).

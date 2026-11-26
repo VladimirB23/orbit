@@ -3,12 +3,14 @@ import { Fragment, useRef } from 'react';
 import type { Meta } from '@/api/types';
 import { type Column, treeLayout } from '@/lib/columns';
 import type { Day } from '@/lib/dates';
+import type { SortKey } from '@/lib/sort';
 import { type Row, rowCount, type TreeItem } from '@/lib/tree';
 import { cn } from '@/lib/utils';
 import { type Columns, ColumnsMenu, Resizer, useWidth, widthOfNames } from './columns';
 import { focusRow } from './focus';
 import { QuickAdd } from './quick-add';
 import { FutureHeading } from './row-parts';
+import { ariaSort, SortHeader, type Sorting } from './sort';
 import { TreeRow } from './tree-row';
 import type { RowActions } from './types';
 import { addingPlace, type TreeUi, useRowKeys } from './use-row-keys';
@@ -21,12 +23,13 @@ interface Props {
   flashing: (row: Row) => boolean;
   actions: RowActions;
   columns: Columns;
+  sorting: Sorting;
   onAddClose: (parent: TreeItem, refocus: boolean) => void;
   empty: React.ReactNode;
 }
 
 export function TreeView(props: Props) {
-  const { rows, today, limits, ui, flashing, actions, columns, onAddClose, empty } = props;
+  const { rows, today, limits, ui, flashing, actions, columns, sorting, onAddClose, empty } = props;
   const { root, activeKey, onKeyDown } = useRowKeys({ rows, ui, actions });
   const place = addingPlace(rows, ui.adding);
   const box = useRef<HTMLDivElement>(null);
@@ -50,6 +53,8 @@ export function TreeView(props: Props) {
         >
           <Header
             label="Название"
+            field="name"
+            sorting={sorting}
             className="pl-8"
             resizer={(current) =>
               layout.compact ? null : (
@@ -67,6 +72,8 @@ export function TreeView(props: Props) {
             <Header
               key={column.id}
               label={column.label}
+              field={column.id === 'note' ? undefined : column.id}
+              sorting={sorting}
               className="pl-1.5"
               textClass={textClass(column)}
               resizer={(current) =>
@@ -127,21 +134,29 @@ const textClass = ({ id }: Column) => (id === 'status' ? 'col-status-text' : und
 
 interface HeaderProps {
   label: string;
+  /** Rows can be ordered by this field. */
+  field?: SortKey;
+  sorting: Sorting;
   className: string;
   textClass?: string;
   resizer: (current: () => number) => React.ReactNode;
 }
 
-function Header({ label, className, textClass, resizer }: HeaderProps) {
+function Header({ label, field, sorting, className, textClass, resizer }: HeaderProps) {
   const cell = useRef<HTMLDivElement>(null);
   return (
     <div
       ref={cell}
       role="columnheader"
       aria-label={label}
+      aria-sort={field && ariaSort(sorting.sort, field)}
       className={cn('relative flex h-full min-w-0 items-center', className)}
     >
-      <span className={cn('truncate', textClass)}>{label}</span>
+      {field ? (
+        <SortHeader field={field} label={label} textClass={textClass} {...sorting} />
+      ) : (
+        <span className={cn('truncate', textClass)}>{label}</span>
+      )}
       {resizer(() => cell.current?.offsetWidth ?? 0)}
     </div>
   );
